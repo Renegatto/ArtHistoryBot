@@ -1,0 +1,9 @@
+﻿Infrastructure/Constants.fs
+.vs/
+bin/Debug/
+obj/
+packages/
+AssemblyInfo.fs
+App.config
+ArtHistoryBot.fsproj
+ArtHistoryBot.sln

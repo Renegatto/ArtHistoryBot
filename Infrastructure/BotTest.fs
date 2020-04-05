@@ -3,9 +3,6 @@ open DSharpPlus
 //open System.Threading.Tasks
 let True x y = x
 
-let tok = "Njk1NjIwMzc5ODM3ODU3ODQy.XomlZw.QqjsUvfuy_VfluuOM_5L2-f857M"
-
-
 let awaitTask (t:System.Threading.Tasks.Task) = 
     t.ContinueWith (fun x -> ()) |> Async.AwaitTask
 

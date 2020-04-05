@@ -1,17 +1,10 @@
 ﻿module MainIO
 
-module Strorage =
+module Storage =
     open System
     open System.IO
     open Domain
-
-    let artworks_from_lines lines : Artwork list =
-        let args: string list list = Parser.linesToArgsets "," lines
-        let validated: Parser.ValidatedArgset list = 
-            List.map (Parser.UnvalidatedArgset>>Parser.validateArgset) args
-        let valid: Parser.ValidArgset list = Parser.validArgsets validated
-
-        List.map Parser.artwork valid
+    open Infrastucture
 
     let content (): Async<string list> = async {
         let read = new Func<string []>( fun () -> File.ReadAllLines Constants.storageName )
@@ -20,8 +13,9 @@ module Strorage =
     }
     let artworks (): Async<Artwork list> = async {
         let! lines = content ()
-        return artworks_from_lines lines
+        return Parser.artworks_from_lines lines
     }
+
 module Randoms =
     open System
     open Domain

@@ -9,9 +9,9 @@ type ValidatedArgset =
     |Valid of ValidArgset
     |Invalid of InvalidArgset
 
-let linesToArgsets (args_separator:string): string list -> string list list =
+let linesToArgsets (args_separator:string): string list -> UnvalidatedArgset list =
         String.split (seq {yield args_separator}) 
-        >> Seq.toList
+        >> Seq.toList >> UnvalidatedArgset
         |> List.map
 let validateArgset (UnvalidatedArgset argset): ValidatedArgset = 
     match List.length argset >= Constants.artworkFieldsCount with
@@ -31,4 +31,5 @@ let artwork (ValidArgset argset): Artwork =
         author          = List.item 1 argset
         about           = List.item 2 argset
     }
-
+let artworks_from_lines: string list -> Artwork list =
+    linesToArgsets "," >> List.map (validateArgset) >> validArgsets >> List.map artwork

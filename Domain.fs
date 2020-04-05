@@ -27,7 +27,7 @@ type Test =
         all_variants : AnswerVariant list
     }
 
-open Infrastructure
+
 let attemptToGuess (test:Test) (variant:Variant): TestResult = 
     List.filter (fun x -> x.variant = variant) test.all_variants
     |> List.head

@@ -1,4 +1,5 @@
 ﻿module BotTest
+
 open DSharpPlus
 //open System.Threading.Tasks
 let True x y = x
@@ -9,7 +10,7 @@ let awaitTask (t:System.Threading.Tasks.Task) =
 let config (): DiscordConfiguration = 
     let cfg = new DiscordConfiguration ()
     cfg.set_TokenType TokenType.Bot
-    cfg.set_Token tok
+    cfg.set_Token Constants.bot_token
     cfg.set_AutomaticGuildSync true
     cfg
 

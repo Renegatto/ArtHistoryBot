@@ -36,6 +36,7 @@ type ResultComprehension() =
     member x.Zero() = Ok ()
 let result = new ResultComprehension()
 
+
 type Asyncresult<'a,'b> = Async<Result<'a,'b>>
 module Asyncresult =
     let bind (fn: 'a -> Asyncresult<'b,'c>) (x:Asyncresult<'a,'c>): Asyncresult<'b,'c> = async {
@@ -54,14 +55,14 @@ module Asyncresult =
         return Error x
     }
     let zero (): Asyncresult<unit,_> = ok ()
-
         
 type AsyncResultComprehension() = 
     member x.Bind(a,fn) = Asyncresult.bind fn a 
     member x.Return(a) = Asyncresult.ok a 
     member x.Zero() = Asyncresult.zero ()
+    member x.ReturnFrom(a) = a
 
-let asyncresult = new ResultComprehension()
+let asyncresult = new AsyncResultComprehension()
 
 //let k = IO 5
 //let bar (x:int):int IO = IO (x+3)
@@ -70,7 +71,6 @@ let asyncresult = new ResultComprehension()
 //    let k = 5 + g 
 //    return k
 //}
-let foo (x:'a): Asyncresult<'a,'a> = asyncresult {
-    let! f = Asyncresult.ok x
-    return x
+let foo (x:'a): Asyncresult<'a,_> = asyncresult {
+    return! Asyncresult.ok x
 }

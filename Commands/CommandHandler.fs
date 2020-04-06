@@ -13,6 +13,7 @@ type NewtTestCommand = {
 }
 type NextTestCommand = {
     sub_id : Subscriptions.SubscriptionId
+    generator : MainIO.TestGenerator
 }
 type Command = 
     |GuessResult of GuessResultCommand
@@ -21,7 +22,7 @@ type Command =
 
 type EventPublisher = EventPublisher of (DomainEvent -> unit Async)
 type Commands = Commands of Command []
-type CommandProcessor = (Command -> Result<DomainEvent,Error>)
+type CommandProcessor = (Command -> Asyncresult<DomainEvent,Error>)
 type CommandMatcher = CommandMatcher of (Command -> Subscriptions.SubscriptionId*CommandProcessor)
 
 type CommandHandler = CommandHandler with //CommandHandler of (Command -> Result<DomainEvent,Error>)
@@ -32,11 +33,11 @@ type CommandHandler = CommandHandler with //CommandHandler of (Command -> Result
 
         let (sid,processor) = matcher command
         let! stored_data = Subscriptions.readData sid
-        let event: Result<DomainEvent,Error> = processor command // stored_data
+        let! event = processor command // stored_data
 
-        Result.map publish event |> ignore
+        publish event |> ignore
 
-        return! event |> Asyncresult.fromResult
+        return event
     }
     static member handle = CommandHandler.handleCommand
     

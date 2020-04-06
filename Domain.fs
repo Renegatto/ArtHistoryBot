@@ -1,40 +1,45 @@
 ﻿module Domain
 open FSharpPlus
+open DomainTypes
+open Errors
 
-type Image = string
-type Variant = int
-type VariantsCount = int
-type Filename = string
-type Artwork =
-    {
-        image : Image
-        author : string
-        about : string
-    }
-type AnswerVariant =
-    {
-        artwork : Artwork
-        variant : Variant
-    }
-    static member sort (variants: AnswerVariant list): AnswerVariant list =
-        List.sortBy (fun x -> x.variant) variants
-type TestResult =
-    |Success 
-    |Fail of AnswerVariant
-type Test =
-    {
-        right_variant : AnswerVariant
-        all_variants : AnswerVariant list
-    }
-
-
-let attemptToGuess (test:Test) (variant:Variant): TestResult = 
+let attemptToGuess (test:Test) (variant:Variant): TestResult = //what's going on here? O_o
     List.filter (fun x -> x.variant = variant) test.all_variants
     |> List.head
     |> fun x -> x = test.right_variant 
     |> function
         |true -> Success
         |false -> Fail test.right_variant
+
+let guessResult (command:Commands.GuessResultCommand) test: Result<Events.DomainEvent list,Error> =
+    match command.answer < List.length command.test.all_variants with
+    |false -> Domain TestVariantIsNotExists |> Error
+    |true ->
+        match command.answer = command.test.right_variant.variant with
+        |true -> Ok [Events.TestSolved {
+                sid = command.sub_id
+                test = command.test
+                answer = command.answer
+            }]
+        |false -> Ok [Events.TestFailed {
+            sid = command.sub_id
+            test = command.test
+            answer = command.answer
+            }]
+let newTest (command:Commands.NewTestCommand) generator test: Result<Events.DomainEvent list,Error> =
+    [ Events.NewQuizStarted {
+        sid = command.sub_id
+        variants_count = command.variants_count
+        generator = generator   
+    }; Events.TestSended {
+            sid = command.sub_id
+            test = test 
+    }] |> Ok
+let nextTest (command:Commands.NextTestCommand) test: Result<Events.DomainEvent list,Error> =
+    [ Events.TestSended {
+            sid = command.sub_id
+            test = test 
+    }] |> Ok
 
 //let testBuilder (storage_name:Filename) (count:int IO): unit IO -> Test IO =
     //let file: = 

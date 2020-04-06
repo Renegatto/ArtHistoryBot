@@ -2,6 +2,7 @@
 type DatabaseError = DatabaseError of string
 type StorageError = StorageError of string
 type DomainError =
+    |TestVariantIsNotExists
     |TestGeneratorNotFounded of sid:int
 type SubscriptionError =
     |NoSubscriptionFound of int

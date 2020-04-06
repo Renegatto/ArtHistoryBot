@@ -1,5 +1,6 @@
 ﻿module Parser
 open Domain
+open DomainTypes
 open FSharpPlus
 
 type UnvalidatedArgset = UnvalidatedArgset of string list

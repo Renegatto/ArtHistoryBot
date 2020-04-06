@@ -1,11 +1,11 @@
 ﻿module MainIO
 open Errors
 open Infrastructure
-type TestGenerator = TestGenerator of (unit -> Asyncresult<Domain.Test,Error>)
+type TestGenerator = Commands.TestGenerator
 
 module Constructors =
     open Domain
-
+    open DomainTypes
     let variant index artwork = {AnswerVariant.artwork=artwork; variant=index}
 
     let test right others = {Test.right_variant=right; all_variants=others}
@@ -14,6 +14,7 @@ module Storage =
     open System
     open System.IO
     open Domain
+    open DomainTypes
     open Errors
     open Infrastructure
 
@@ -32,6 +33,7 @@ module Storage =
 module Randoms =
     open System
     open Domain
+    open DomainTypes
     open Infrastructure
     open FSharpPlus
 
@@ -65,7 +67,7 @@ module Randoms =
 module Subscriptions =
     open Infrastructure
     open FSharpPlus
-    type SubscriptionId = SubscriptionId of int
+    open Commands
     type SubscriptionError = Errors.SubscriptionError
     type StoredData =
         |TestData of TestGenerator

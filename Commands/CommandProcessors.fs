@@ -1,12 +1,14 @@
-﻿module Commands
+﻿module CommandProcessors
 open CommandHandler
+open Commands
 open Domain
+open DomainTypes
 open Errors
 open Events
 open Infrastructure
 
 let nextTest (NextTest cmd): Asyncresult<DomainEvent,Error> = asyncresult {
-    let generator (MainIO.TestGenerator gen) = gen
+    let generator (TestGenerator gen) = gen
     let! test = generator cmd.generator ()
 
     return Domain.nextTest cmd test

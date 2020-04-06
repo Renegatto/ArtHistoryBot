@@ -1,0 +1,27 @@
+﻿
+Protection:
+(history, command) -> events
+
+Interpretation:
+events -> state
+
+Intention:
+state -> command
+
+Automation:
+events -> command
+
+state is:
+[event]
+[command]
+[query] <so what about query? how should i use it?>
+
+about IO:
+IO -> event
+event -> IO <is i should do it by command handling or any else way?>
+
+about handling:
+[event] -> command : event_handler
+query -> ? : query_handler
+command -> [event] : command_handler <is those events have an (f: event -> command)? is it isomorphic?>
+if yes, then i have ([event] -> [handled_event]) also

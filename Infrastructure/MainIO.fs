@@ -80,10 +80,9 @@ module Subscriptions =
         |Some x -> 
             return x
         |None ->
-            return! NoSubscriptionFound sid |> Asyncresult.error
+            return! sid_2_int sid |> NoSubscriptionFound |> Asyncresult.error
     }
-
-    let subscribe (): Subscription IO =
+    let subscribe (): Asyncresult<Subscription,_> =
         match Array.tryHead releases with
         |Some release -> 
             releases <- Array.tail releases
@@ -92,30 +91,21 @@ module Subscriptions =
             let sid = Array.length subscriptions + 1
             Array.set subscriptions sid { Subscription.sid=SubscriptionId sid; meta=""; data=NoData }
 
-        Array.last subscriptions |> IO
-    let unsubscribe (sid:SubscriptionId): Result<SubscriptionId,SubscriptionError>IO = io {
-        match! tryFind sid with
-        |Some sub ->
-            releases <- Array.append [|sid_2_int sub.sid|] releases
-            return Ok sid
-        |None ->
-            return sid_2_int sid |> NoSubscriptionFound |> Error
-    }
+        Array.last subscriptions |> Asyncresult.ok
 
-    let storeData (sid:SubscriptionId) (data:StoredData): Result<Subscription,SubscriptionError>IO = io {
-        match! tryFind sid with
-        |Some sub ->
-            Array.set subscriptions (sid_2_int sub.sid) {subscriptions.[sid_2_int sub.sid] with data=data}
-            return Ok sub
-        |None ->
-            return sid_2_int sid |> NoSubscriptionFound |> Error
-        }
-    let readData (sid:SubscriptionId): Result<StoredData,SubscriptionError>IO = io {
-        match! tryFind sid with
-            |Some sub ->
-                return Ok sub.data
-            |None ->
-                return sid_2_int sid |> NoSubscriptionFound |> Error
+    let unsubscribe (sid:SubscriptionId): Asyncresult<SubscriptionId,SubscriptionError> = asyncresult {
+        let! sub = tryFind sid
+        releases <- Array.append [|sid_2_int sub.sid|] releases
+        return sid
+    }
+    let storeData (sid:SubscriptionId) (data:StoredData): Asyncresult<Subscription,SubscriptionError> = asyncresult {
+        let! sub = tryFind sid
+        Array.set subscriptions (sid_2_int sub.sid) {subscriptions.[sid_2_int sub.sid] with data=data}
+        return sub
+    }
+    let readData (sid:SubscriptionId): Asyncresult<StoredData,SubscriptionError> = asyncresult {
+        let! sub = tryFind sid
+        return sub.data
     }
 //open System
 open Domain

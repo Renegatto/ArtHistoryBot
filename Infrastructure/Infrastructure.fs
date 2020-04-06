@@ -63,14 +63,3 @@ type AsyncResultComprehension() =
     member x.ReturnFrom(a) = a
 
 let asyncresult = new AsyncResultComprehension()
-
-//let k = IO 5
-//let bar (x:int):int IO = IO (x+3)
-//let foo (x:int): int IO = io {
-//    let! g = k
-//    let k = 5 + g 
-//    return k
-//}
-let foo (x:'a): Asyncresult<'a,_> = asyncresult {
-    return! Asyncresult.ok x
-}

@@ -1,4 +1,4 @@
-﻿module Infrastucture
+﻿module Infrastructure
 let flip f x y = f y x
 type IO<'a> = IO of 'a with
 
@@ -63,7 +63,7 @@ module Asyncresult =
         return Error y
     }
     let zero (): Asyncresult<unit,_> = ok ()
-        
+    let fromResult (x:Result<'a,'b>): Asyncresult<'a,'b> = async { return x }
 type AsyncResultComprehension() = 
     member x.Bind(a,fn) = Asyncresult.bind fn a 
     member x.Return(a) = Asyncresult.ok a 

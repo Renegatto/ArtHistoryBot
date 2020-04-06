@@ -1,20 +1,46 @@
 ﻿module Commands
 open Errors
 open Domain
-type DomainEvent = DomainEvent
+open Infrastructure
+open MainIO
+open Events
 
-type Command =
-    |GuessResult
-    |NewTest
-    |NextTest of subscription_id:int
-type CommandHandler = CommandHandler of (Command -> Result<DomainEvent,Error>)
+type GuessResultCommand = {
+    sub_id : Subscriptions.SubscriptionId
+}
+type NewtTestCommand = {
+    sub_id : Subscriptions.SubscriptionId
+}
+type NextTestCommand = {
+    sub_id : Subscriptions.SubscriptionId
+}
+type Command = 
+    |GuessResult of GuessResultCommand
+    |NewTest of NewtTestCommand
+    |NextTest of NextTestCommand
 
+let matchCommand = function
+    |GuessResult cmd -> cmd.sub_id,0
+    |NewTest cmd -> cmd.sub_id,0
+    |NextTest cmd -> cmd.sub_id,0
+type EventPublisher = EventPublisher
+
+type CommandHandler = CommandHandler with //CommandHandler of (Command -> Result<DomainEvent,Error>)
+    static member private handleCommand (command:Command) (publish:EventPublisher): Asyncresult<DomainEvent,Error> = asyncresult {
+        let (sid,processor) = matchCommand command
+        let! stored_data = Subscriptions.readData sid
+        let event: DomainEvent = processor command stored_data
+        publish(event)
+        return! event |> Asyncresult.fromResult
+    }
+    static member handle = CommandHandler.handleCommand
+    
 type Commands = Commands of Command []
 type CommandMatcher = CommandMatcher of (Command -> CommandHandler)
 
 let mutable commands = Commands Array.empty
 
-open Infrastucture
+open Infrastructure
 module Command =
     open MainIO
 

@@ -18,7 +18,7 @@ type Command =
     |GuessResult of GuessResultCommand
     |NewTest of NewtTestCommand
     |NextTest of NextTestCommand
-
+[<System.Diagnostics.DebuggerDisplay("Commands: command matching")>]
 let matchCommand = function
     |GuessResult cmd -> cmd.sub_id,0
     |NewTest cmd -> cmd.sub_id,0

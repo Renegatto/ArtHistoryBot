@@ -1,7 +1,5 @@
 ﻿module Events
 
-
-
 type DomainEvent =
     |NextTestSended
     |TestSolved

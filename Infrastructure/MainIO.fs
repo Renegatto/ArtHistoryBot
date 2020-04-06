@@ -12,13 +12,13 @@ module Storage =
     open System
     open System.IO
     open Domain
-
+    [<System.Diagnostics.DebuggerDisplay("Storage: content pulled")>]
     let content (): Async<string list> = async {
         let read = new Func<string []>( fun () -> File.ReadAllLines Constants.storageName )
         let! content = Async.FromBeginEnd(read.BeginInvoke,read.EndInvoke)
         return content |> Array.toList
     }
-
+    [<System.Diagnostics.DebuggerDisplay("Storage: artworks pulled")>]
     let artworks (): Async<Artwork list> = async {
         let! lines = content ()
         return Parser.artworks_from_lines lines
@@ -27,7 +27,7 @@ module Storage =
 module Randoms =
     open System
     open Domain
-    open Infrastucture
+    open Infrastructure
     open FSharpPlus
 
     let rng = Random(Constants.random_seed)
@@ -36,20 +36,20 @@ module Randoms =
         rng.Next (0, List.length xs)
         |> flip List.item xs
         |> IO
-
+    [<System.Diagnostics.DebuggerDisplay("Randoms: random sample touched")>]
     let sample count (xs: 'a list) () : 'a list IO =
         IO.traverse (fun _ -> element xs ()) [1..count]
-
+    [<System.Diagnostics.DebuggerDisplay("Randoms: random artwork touched")>]
     let artwork :Artwork list -> unit -> Artwork IO = element
-
+    [<System.Diagnostics.DebuggerDisplay("Randoms: random variant touched")>]
     let variant :AnswerVariant list -> unit -> AnswerVariant IO = element
-
+    [<System.Diagnostics.DebuggerDisplay("Randoms: variants touched")>]
     let variants count (artworks:Artwork list) (): AnswerVariant list IO = io {
         let! random_artworks = sample count artworks ()
         let enumerated = List.zip [0..List.length random_artworks] random_artworks
         return List.map (fun (i,artwork) -> Constructors.variant i artwork) enumerated
     }
-
+    [<System.Diagnostics.DebuggerDisplay("Randoms: test builder touched with count {variants_count}")>]
     let testBuilder (variants_count: int) (artworks:Artwork List) (): Test IO = 
         io {
             let! all_variants = variants variants_count artworks ()
@@ -75,6 +75,8 @@ module Subscriptions =
     let mutable releases : int[] = Array.empty
 
     let sid_2_int (SubscriptionId x) = x
+
+    [<System.Diagnostics.DebuggerDisplay(": lookup for {sid}")>]
     let tryFind (sid:SubscriptionId): Asyncresult<Subscription,Error> = asyncresult {
         match Array.tryFind (fun sub -> sub.sid = sid) subscriptions with
         |Some x -> 
@@ -82,6 +84,7 @@ module Subscriptions =
         |None ->
             return! sid_2_int sid |> NoSubscriptionFound |> Subscription |> Asyncresult.error
     }
+    [<System.Diagnostics.DebuggerDisplay("Subscriptions: Subcription")>]
     let subscribe (): Asyncresult<Subscription,_> =
         match Array.tryHead releases with
         |Some release -> 
@@ -92,17 +95,19 @@ module Subscriptions =
             Array.set subscriptions sid { Subscription.sid=SubscriptionId sid; meta=""; data=NoData }
 
         Array.last subscriptions |> Asyncresult.ok
-
+    [<System.Diagnostics.DebuggerDisplay("Subscriptions: unsubscribing {sid}")>]
     let unsubscribe (sid:SubscriptionId): Asyncresult<SubscriptionId,Error> = asyncresult {
         let! sub = tryFind sid
         releases <- Array.append [|sid_2_int sub.sid|] releases
         return sid
     }
+    [<System.Diagnostics.DebuggerDisplay("Subscriptions: store data for {sid}")>]
     let storeData (sid:SubscriptionId) (data:StoredData): Asyncresult<Subscription,Error> = asyncresult {
         let! sub = tryFind sid
         Array.set subscriptions (sid_2_int sub.sid) {subscriptions.[sid_2_int sub.sid] with data=data}
         return sub
     }
+    [<System.Diagnostics.DebuggerDisplay("Subscriptions: read data for {sid}")>]
     let readData (sid:SubscriptionId): Asyncresult<StoredData,Error> = asyncresult {
         let! sub = tryFind sid
         return sub.data
@@ -111,6 +116,7 @@ module Subscriptions =
 open Domain
 open Infrastructure
 
+[<System.Diagnostics.DebuggerDisplay("MainIO: test builder touched {sid}")>]
 let testBuilder (variants_count:int) () : Test Async = async {
     let! artworks = Storage.artworks ()
     return IO.unwrapInsideAsync <|  Randoms.testBuilder variants_count artworks ()

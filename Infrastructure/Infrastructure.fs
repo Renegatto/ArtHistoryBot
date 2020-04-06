@@ -69,5 +69,19 @@ type AsyncResultComprehension() =
     member x.Return(a) = Asyncresult.ok a 
     member x.Zero() = Asyncresult.zero ()
     member x.ReturnFrom(a) = a
+    //member x.TryWith(y:Asyncresult<'a,'b>,fn:('a -> Asyncresult<'a,'b>)): Asyncresult<'a,'b> = async {
+    //    try
+    //        return fn y
+    //    with
+    //    |ex -> return Error
+    //}
+    //member x.Delay(fn) = fn ()
 
 let asyncresult = new AsyncResultComprehension()
+//let bar x = x+1
+//let foo: Asyncresult<int,float> = asyncresult {
+//    try
+//        return bar 2 
+//    with
+//    |_ -> Asyncresult.error 7.44
+}

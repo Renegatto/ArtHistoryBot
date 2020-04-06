@@ -1,5 +1,7 @@
 ﻿module MainIO
-type TestGenerator = TestGenerator of (unit -> Domain.Test Async)
+open Errors
+open Infrastructure
+type TestGenerator = TestGenerator of (unit -> Asyncresult<Domain.Test,Error>)
 
 module Constructors =
     open Domain
@@ -12,6 +14,9 @@ module Storage =
     open System
     open System.IO
     open Domain
+    open Errors
+    open Infrastructure
+
     [<System.Diagnostics.DebuggerDisplay("Storage: content pulled")>]
     let content (): Async<string list> = async {
         let read = new Func<string []>( fun () -> File.ReadAllLines Constants.storageName )
@@ -19,8 +24,8 @@ module Storage =
         return content |> Array.toList
     }
     [<System.Diagnostics.DebuggerDisplay("Storage: artworks pulled")>]
-    let artworks (): Async<Artwork list> = async {
-        let! lines = content ()
+    let artworks (): Asyncresult<Artwork list,Error> = asyncresult {
+        let! lines = content () |> Asyncresult.okAsync
         return Parser.artworks_from_lines lines
     }
 
@@ -60,7 +65,6 @@ module Randoms =
 module Subscriptions =
     open Infrastructure
     open FSharpPlus
-    open Errors
     type SubscriptionId = SubscriptionId of int
     type SubscriptionError = Errors.SubscriptionError
     type StoredData =
@@ -116,8 +120,8 @@ module Subscriptions =
 open Domain
 open Infrastructure
 
-[<System.Diagnostics.DebuggerDisplay("MainIO: test builder touched {sid}")>]
-let testBuilder (variants_count:int) () : Test Async = async {
-    let! artworks = Storage.artworks ()
-    return IO.unwrapInsideAsync <|  Randoms.testBuilder variants_count artworks ()
-}
+//[<System.Diagnostics.DebuggerDisplay("MainIO: test builder touched {sid}")>]
+//let testBuilder (variants_count:int) () : Asyncresult<Test,Error>  = asyncresult {
+//    let! artworks = Storage.artworks ()
+//    return IO.unwrapInsideAsync <|  Randoms.testBuilder variants_count artworks ()
+//}

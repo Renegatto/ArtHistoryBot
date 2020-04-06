@@ -10,6 +10,7 @@ type GuessResultCommand = {
 }
 type NewtTestCommand = {
     sub_id : Subscriptions.SubscriptionId
+    variants_count : int
 }
 type NextTestCommand = {
     sub_id : Subscriptions.SubscriptionId

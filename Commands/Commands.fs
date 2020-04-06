@@ -4,21 +4,19 @@ open Domain
 open Errors
 open Events
 open Infrastructure
-open MainIO
 
 let nextTest (NextTest cmd): Asyncresult<DomainEvent,Error> = asyncresult {
-    let generator (TestGenerator gen) = gen
-    let! test = generator cmd.generator () |> Asyncresult.okAsync
+    let generator (MainIO.TestGenerator gen) = gen
+    let! test = generator cmd.generator ()
 
-    return Domain.nextTest test
+    return Domain.nextTest cmd test
 }
 let newTest (NewTest cmd): Asyncresult<DomainEvent,Error> = asyncresult {
-    let! artworks = Storage.artworks ()
+    let! artworks = MainIO.Storage.artworks ()
+    let generator = MainIO.Randoms.testBuilder cmd.variants_count artworks >> IO.unwrapInsideAsync
+    let test = generator ()
 
-    let generator (TestGenerator gen) = gen
-    let! test = generator cmd.generator () |> Asyncresult.okAsync
-
-    return Domain.nextTest test
+    return Domain.newTest cmd generator test
 }
 
 [<System.Diagnostics.DebuggerDisplay("Commands: command matching")>]

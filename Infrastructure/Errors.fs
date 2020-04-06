@@ -1,7 +1,8 @@
 ﻿module Errors
 type DatabaseError = DatabaseError of string
 type StorageError = StorageError of string
-type DomainError = DomainError of string
+type DomainError =
+    |TestGeneratorNotFounded of sid:int
 type SubscriptionError =
     |NoSubscriptionFound of int
 type Error = 

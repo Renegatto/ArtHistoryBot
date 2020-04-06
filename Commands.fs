@@ -1,5 +1,6 @@
 ﻿module Commands
 open Errors
+open Domain
 type DomainEvent = DomainEvent
 
 type Command =
@@ -16,12 +17,18 @@ let mutable commands = Commands Array.empty
 open Infrastucture
 module Command =
     open MainIO
-    let nextTest (NextTest sid) = 
-        match Subscriptions.SubscriptionId sid |> Subscriptions.readData with
-        |IO x -> result {
-            match! x with
-            |Subscriptions.TestData (TestGenerator x) ->
-                
-            |Subscriptions.NoData ->
-        
-        }
+
+    let nextTest (NextTest sid): Asyncresult<Test,Error> = asyncresult {
+        match! Subscriptions.SubscriptionId sid |> Subscriptions.readData with
+        |Subscriptions.TestData (TestGenerator test_generator) ->
+            return! test_generator () |> Asyncresult.okAsync
+        |Subscriptions.NoData ->
+            return! TestGeneratorNotFounded sid |> Domain |> Asyncresult.error
+    }
+    let newTest (NextTest sid): Asyncresult<Test,Error> = asyncresult {// not impl
+        match! Subscriptions.SubscriptionId sid |> Subscriptions.readData with
+        |Subscriptions.TestData (TestGenerator test_generator) ->
+            return! test_generator () |> Asyncresult.okAsync
+        |Subscriptions.NoData ->
+            return! TestGeneratorNotFounded sid |> Domain |> Asyncresult.error
+    }

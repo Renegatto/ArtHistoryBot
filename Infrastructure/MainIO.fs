@@ -75,12 +75,12 @@ module Subscriptions =
     let mutable releases : int[] = Array.empty
 
     let sid_2_int (SubscriptionId x) = x
-    let tryFind (sid:SubscriptionId): Asyncresult<Subscription, SubscriptionError> = asyncresult {
+    let tryFind (sid:SubscriptionId): Asyncresult<Subscription,Error> = asyncresult {
         match Array.tryFind (fun sub -> sub.sid = sid) subscriptions with
         |Some x -> 
             return x
         |None ->
-            return! sid_2_int sid |> NoSubscriptionFound |> Asyncresult.error
+            return! sid_2_int sid |> NoSubscriptionFound |> Subscription |> Asyncresult.error
     }
     let subscribe (): Asyncresult<Subscription,_> =
         match Array.tryHead releases with
@@ -93,17 +93,17 @@ module Subscriptions =
 
         Array.last subscriptions |> Asyncresult.ok
 
-    let unsubscribe (sid:SubscriptionId): Asyncresult<SubscriptionId,SubscriptionError> = asyncresult {
+    let unsubscribe (sid:SubscriptionId): Asyncresult<SubscriptionId,Error> = asyncresult {
         let! sub = tryFind sid
         releases <- Array.append [|sid_2_int sub.sid|] releases
         return sid
     }
-    let storeData (sid:SubscriptionId) (data:StoredData): Asyncresult<Subscription,SubscriptionError> = asyncresult {
+    let storeData (sid:SubscriptionId) (data:StoredData): Asyncresult<Subscription,Error> = asyncresult {
         let! sub = tryFind sid
         Array.set subscriptions (sid_2_int sub.sid) {subscriptions.[sid_2_int sub.sid] with data=data}
         return sub
     }
-    let readData (sid:SubscriptionId): Asyncresult<StoredData,SubscriptionError> = asyncresult {
+    let readData (sid:SubscriptionId): Asyncresult<StoredData,Error> = asyncresult {
         let! sub = tryFind sid
         return sub.data
     }

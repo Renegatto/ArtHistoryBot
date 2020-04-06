@@ -54,6 +54,14 @@ module Asyncresult =
     let error (x:'a): Asyncresult<_,'a> = async {
         return Error x
     }
+    let okAsync (x:'a Async): Asyncresult<'a,_> = async {
+        let! y = x
+        return Ok y
+    }
+    let errorAsync (x:'a Async): Asyncresult<_,'a> = async {
+        let! y = x
+        return Error y
+    }
     let zero (): Asyncresult<unit,_> = ok ()
         
 type AsyncResultComprehension() = 

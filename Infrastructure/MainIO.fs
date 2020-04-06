@@ -58,7 +58,7 @@ module Randoms =
             return test
         }
 module Subscriptions =
-    open Infrastucture
+    open Infrastructure
     open FSharpPlus
     open Errors
     type SubscriptionId = SubscriptionId of int
@@ -109,7 +109,7 @@ module Subscriptions =
     }
 //open System
 open Domain
-open Infrastucture
+open Infrastructure
 
 let testBuilder (variants_count:int) () : Test Async = async {
     let! artworks = Storage.artworks ()

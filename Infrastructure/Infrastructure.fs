@@ -30,6 +30,39 @@ type IOComprehension() =
     member x.Zero() = IO ()
 let io = new IOComprehension()
 
+type ResultComprehension() =
+    member x.Bind(a,fn) = Result.bind fn a 
+    member x.Return(a) = Ok a 
+    member x.Zero() = Ok ()
+let result = new ResultComprehension()
+
+type Asyncresult<'a,'b> = Async<Result<'a,'b>>
+module Asyncresult =
+    let bind (fn: 'a -> Asyncresult<'b,'c>) (x:Asyncresult<'a,'c>): Asyncresult<'b,'c> = async {
+        let! arg1 = x
+        match arg1 with
+        |Ok a ->
+            let! solvedfn = fn a
+            return solvedfn
+        |Error b ->
+            return Error b
+    }
+    let ok (x:'a): Asyncresult<'a,_> = async {
+        return Ok x
+    }
+    let error (x:'a): Asyncresult<_,'a> = async {
+        return Error x
+    }
+    let zero (): Asyncresult<unit,_> = ok ()
+
+        
+type AsyncResultComprehension() = 
+    member x.Bind(a,fn) = Asyncresult.bind fn a 
+    member x.Return(a) = Asyncresult.ok a 
+    member x.Zero() = Asyncresult.zero ()
+
+let asyncresult = new ResultComprehension()
+
 //let k = IO 5
 //let bar (x:int):int IO = IO (x+3)
 //let foo (x:int): int IO = io {
@@ -37,3 +70,7 @@ let io = new IOComprehension()
 //    let k = 5 + g 
 //    return k
 //}
+let foo (x:'a): Asyncresult<'a,'a> = asyncresult {
+    let! f = Asyncresult.ok x
+    return x
+}

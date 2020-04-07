@@ -20,11 +20,20 @@ let newTest (NewTest cmd): Asyncresult<DomainEvent list,Error> = asyncresult {
 
     return! Domain.newTest cmd (TestGenerator generator) test |> Asyncresult.fromResult
 }
+let guessResult (GuessResult cmd): Asyncresult<DomainEvent list,Error> = asyncresult {
+    //let! artworks = MainIO.Storage.artworks ()
+    //let generator = MainIO.Randoms.testBuilder cmd.variants_count artworks >> IO.unwrapInsideAsync >> Asyncresult.ok
+    //let! test = generator ()
+
+    //return! Domain.newTest cmd (TestGenerator generator) test |> Asyncresult.fromResult
+    return! Domain.guessResult cmd |> Asyncresult.fromResult //cmd. (TestGenerator generator) test 
+}
 
 [<System.Diagnostics.DebuggerDisplay("Commands: command matching")>]
 let matchCommand: CommandMatcher = 
     CommandMatcher (function
-    //|GuessResult cmd -> cmd.sub_id,0
-    //|NewTest cmd -> cmd.sub_id, newTest
+    |GuessResult cmd -> SubscriptionId cmd.sub_id, guessResult
+    |NewTest cmd -> SubscriptionId cmd.sub_id, newTest
     |NextTest cmd -> SubscriptionId cmd.sub_id, nextTest
+
     )

@@ -1,7 +1,6 @@
 ﻿module MainIO
 open Errors
 open Infrastructure
-type TestGenerator = Commands.TestGenerator
 
 module Constructors =
     open Domain
@@ -70,7 +69,7 @@ module Subscriptions =
     open Commands
     type SubscriptionError = Errors.SubscriptionError
     type StoredData =
-        |TestData of TestGenerator
+        |TestData of DomainTypes.TestGenerator
         |NoData
     type Subscription = {
         sid : SubscriptionId

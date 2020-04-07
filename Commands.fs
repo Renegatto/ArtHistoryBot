@@ -18,6 +18,7 @@ type NextTestCommand = {
     sub_id : int
     generator : TestGenerator
 }
+
 type Command = 
     |GuessResult of GuessResultCommand
     |NewTest of NewTestCommand

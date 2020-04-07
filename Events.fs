@@ -1,5 +1,6 @@
 ﻿module Events
 open DomainTypes
+
 type NewQuizStartedEvent =
     {
         sid : int
@@ -23,6 +24,7 @@ type TestFailedEvent =
         test : Test
         answer : Variant
     }
+
 type DomainEvent =
     |TestSolved of TestSolvedEvent
     |TestFailed of TestFailedEvent

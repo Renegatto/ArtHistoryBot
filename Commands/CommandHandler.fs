@@ -23,6 +23,7 @@ type CommandHandler = CommandHandler with //CommandHandler of (Command -> Result
         return event
     }
     static member handle = CommandHandler.handleCommand
-    
-
+    //static member observe =  implement IObservable interface, 
+    //that will respond to Subscriptions changing and notify subcriber
+  
 let mutable commands = Commands Array.empty

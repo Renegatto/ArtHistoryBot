@@ -24,7 +24,7 @@ type Command =
     |NewTest of NewTestCommand
     |NextTest of NextTestCommand
 
-type EventPublisher = EventPublisher of (DomainEvent -> unit Async)
+type EventPublisher = EventPublisher of (DomainEvent list -> unit Async)
 type Commands = Commands of Command []
-type CommandProcessor = (Command -> Asyncresult<DomainEvent,Error>)
+type CommandProcessor = (Command -> Asyncresult<DomainEvent list,Error>)
 type CommandMatcher = CommandMatcher of (Command -> SubscriptionId*CommandProcessor)

@@ -12,7 +12,7 @@ type CommandHandler = CommandHandler with //CommandHandler of (Command -> Result
     static member private handleCommand (command:Command) 
         (EventPublisher publish) 
         (CommandMatcher matcher)
-        : Asyncresult<DomainEvent,Error> = asyncresult {
+        : Asyncresult<DomainEvent list,Error> = asyncresult {
 
         let (sid,processor) = matcher command
         let! stored_data = Subscriptions.readData sid

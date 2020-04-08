@@ -6,9 +6,10 @@ open Infrastructure
 open MainIO
 open Events
 open Commands
+//interface IRepository with
+//    member 
 
-
-type CommandHandler = CommandHandler with //CommandHandler of (Command -> Result<DomainEvent,Error>)
+type CommandHandler() = //CommandHandler of (Command -> Result<DomainEvent,Error>)
     static member private handleCommand (command:Command) 
         (EventPublisher publish) 
         (CommandMatcher matcher)

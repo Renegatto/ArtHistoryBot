@@ -42,8 +42,8 @@ module Randoms =
         rng.Next (0, List.length xs)
         |> flip List.item xs
         |> IO
-    [<System.Diagnostics.DebuggerDisplay("Randoms: random sample touched")>]
-    let sample count (xs: 'a list) () : 'a list IO =
+    [<System.Diagnostics.DebuggerDisplay("Randoms: random sample touched"//)>]
+    let sample count (xs: 'a list) () : 'a list IO = // позволяет выбирать несколько раз одно и то же
         IO.traverse (fun _ -> element xs ()) [1..count]
     [<System.Diagnostics.DebuggerDisplay("Randoms: random artwork touched")>]
     let artwork :Artwork list -> unit -> Artwork IO = element
@@ -52,8 +52,9 @@ module Randoms =
     [<System.Diagnostics.DebuggerDisplay("Randoms: variants touched")>]
     let variants count (artworks:Artwork list) (): AnswerVariant list IO = io {
         let! random_artworks = sample count artworks ()
-        let enumerated = List.zip [0..List.length random_artworks] random_artworks
-        return List.map (fun (i,artwork) -> Constructors.variant i artwork) enumerated
+        let result = List.indexed random_artworks
+                     |> List.map (fun (i,artwork) -> Constructors.variant i artwork) 
+        return result
     }
     [<System.Diagnostics.DebuggerDisplay("Randoms: test builder touched with count {variants_count}")>]
     let testBuilder (variants_count: int) (artworks:Artwork List) (): Test IO = 

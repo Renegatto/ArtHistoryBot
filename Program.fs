@@ -7,6 +7,15 @@ open FSharpPlus
 [<EntryPoint>]
 let main argv = 
     printfn "%A" argv
+    let cmd = Commands.NewTest { 
+        Commands.NewTestCommand.sub_id = 666
+        Commands.NewTestCommand.variants_count = 2
+    }
+    let check_stuff = async {
+        let! result = CommandProcessors.newTest cmd
+        printfn "%A" result
+    }
+    Async.RunSynchronously check_stuff
     while true do
         //make_connection ()
         printfn "i'm still alive1 %A" ()

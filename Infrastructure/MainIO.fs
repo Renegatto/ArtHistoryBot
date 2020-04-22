@@ -37,14 +37,20 @@ module Randoms =
     open FSharpPlus
 
     let rng = Random(Constants.random_seed)
-
+    let randomOrder _: int =
+        match rng.Next(0,2) with
+        |0 -> -1
+        |1 ->  0
+        |_ ->  1
+    let shuffle<'a> :'a list -> IO<'a list> = 
+        IO << List.sortBy randomOrder
     let element (xs: 'a list) (): 'a IO =
         rng.Next (0, List.length xs)
         |> flip List.item xs
         |> IO
-    [<System.Diagnostics.DebuggerDisplay("Randoms: random sample touched"//)>]
+    [<System.Diagnostics.DebuggerDisplay("Randoms: random sample touched")>]
     let sample count (xs: 'a list) () : 'a list IO = // позволяет выбирать несколько раз одно и то же
-        IO.traverse (fun _ -> element xs ()) [1..count]
+        shuffle xs |> IO.map (List.take count)
     [<System.Diagnostics.DebuggerDisplay("Randoms: random artwork touched")>]
     let artwork :Artwork list -> unit -> Artwork IO = element
     [<System.Diagnostics.DebuggerDisplay("Randoms: random variant touched")>]

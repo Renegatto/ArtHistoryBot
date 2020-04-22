@@ -37,11 +37,7 @@ module Randoms =
     open FSharpPlus
 
     let rng = Random(Constants.random_seed)
-    let randomOrder _: int =
-        match rng.Next(0,2) with
-        |0 -> -1
-        |1 ->  0
-        |_ ->  1
+    let randomOrder _: int = rng.Next ()
     let shuffle<'a> :'a list -> IO<'a list> = 
         IO << List.sortBy randomOrder
     let element (xs: 'a list) (): 'a IO =

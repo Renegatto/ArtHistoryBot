@@ -28,8 +28,6 @@ let guessResult (GuessResult cmd): Asyncresult<DomainEvent list,Error> = asyncre
     //return! Domain.newTest cmd (TestGenerator generator) test |> Asyncresult.fromResult
     return! Domain.guessResult cmd |> Asyncresult.fromResult //cmd. (TestGenerator generator) test 
 }
-
-[<System.Diagnostics.DebuggerDisplay("Commands: command matching")>]
 let matchCommand: CommandMatcher = 
     CommandMatcher (function
     |GuessResult cmd -> SubscriptionId cmd.sub_id, guessResult

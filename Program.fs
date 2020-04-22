@@ -7,9 +7,11 @@ open FSharpPlus
 [<EntryPoint>]
 let main argv = 
     printfn "%A" argv
+    //let foo = MainIO.Randoms.shuffle [0..20]
+    //printfn "%A"foo |> ignore
     let cmd = Commands.NewTest { 
         Commands.NewTestCommand.sub_id = 666
-        Commands.NewTestCommand.variants_count = 2
+        Commands.NewTestCommand.variants_count = 3
     }
     let check_stuff = async {
         let! result = CommandProcessors.newTest cmd

@@ -7,17 +7,56 @@ open FSharpPlus
 [<EntryPoint>]
 let main argv = 
     printfn "%A" argv
-    //let foo = MainIO.Randoms.shuffle [0..20]
-    //printfn "%A"foo |> ignore
-    let cmd = Commands.NewTest { 
+    let foo = List.map (fun _ -> MainIO.Randoms.element [0..20] ()) [0..30]
+
+    printfn "%A" foo |> ignore
+
+    let cmd1 = Commands.NewTest { 
         Commands.NewTestCommand.sub_id = 666
         Commands.NewTestCommand.variants_count = 3
     }
     let check_stuff = async {
-        let! result = CommandProcessors.newTest cmd
-        printfn "%A" result
+        let! result = CommandProcessors.newTest cmd1
+        let guess events = 
+            match List.rev events |> List.head with
+            |Events.TestSended x ->
+                Commands.GuessResult {
+                    Commands.GuessResultCommand.answer = 2
+                    Commands.GuessResultCommand.sub_id = x.sid
+                    Commands.GuessResultCommand.test = x.test
+                } |> CommandProcessors.guessResult
+        let next_quiz events =
+            match List.head events with
+            |Events.NewQuizStarted x -> Commands.NextTest { 
+                Commands.NextTestCommand.sub_id = x.sid
+                Commands.NextTestCommand.generator = x.generator
+            } |> CommandProcessors.nextTest
+
+        let! guessresult = 
+            Infrastructure.Asyncresult.fromResult result 
+            |> Infrastructure.Asyncresult.bind guess
+        let! nexttest = 
+            Infrastructure.Asyncresult.fromResult result 
+            |> Infrastructure.Asyncresult.bind next_quiz
+        let! nextresult = 
+            Infrastructure.Asyncresult.fromResult nexttest
+            |> Infrastructure.Asyncresult.bind guess
+        let! nexttest2 = 
+            Infrastructure.Asyncresult.fromResult result 
+            |> Infrastructure.Asyncresult.bind next_quiz
+        let! nextresult2 = 
+            Infrastructure.Asyncresult.fromResult nexttest2
+            |> Infrastructure.Asyncresult.bind guess
+
+        printfn "%A \n--------------and result------------ \n %A" result guessresult
+        printfn "\n================== \n"
+        printfn "%A \n--------------and result------------ \n %A" nexttest nextresult
+        printfn "\n================== \n"
+        printfn "%A \n--------------and result------------ \n %A" nexttest2 nextresult2
     }
-    Async.RunSynchronously check_stuff
+    for x in [0..10] do
+        Async.RunSynchronously check_stuff
+    
     while true do
         //make_connection ()
         printfn "i'm still alive1 %A" ()

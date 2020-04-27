@@ -15,9 +15,9 @@ type CommandHandler() = //CommandHandler of (Command -> Result<DomainEvent,Error
         (CommandMatcher matcher)
         : Asyncresult<DomainEvent list,Error> = asyncresult {
 
-        let (sid,processor) = matcher command
+        let (sid, processor) = matcher command
         let! stored_data = Subscriptions.readData sid
-        let! event = processor command // stored_data
+        let! event = processor ()// stored_data
 
         publish event |> ignore
 

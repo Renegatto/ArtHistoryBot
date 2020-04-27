@@ -62,7 +62,7 @@ module Randoms =
 module Subscriptions =
     open Infrastructure
     open FSharpPlus
-    open Commands
+    open DomainTypes
     type SubscriptionError = Errors.SubscriptionError
     type StoredData =
         |TestData of DomainTypes.TestGenerator

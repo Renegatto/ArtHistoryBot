@@ -20,12 +20,13 @@ let validateArgset (UnvalidatedArgset argset): ValidatedArgset =
     |false -> argset |> InvalidArgset |> Invalid
 
 let validArgsets (argsets:ValidatedArgset list): ValidArgset list =
-    let filter: ValidatedArgset -> bool = function 
-        |(Valid (ValidArgset _)) -> true 
-        |(Invalid (InvalidArgset _)) -> false
 
-    List.filter filter argsets
-    |> List.map (function (Valid x) -> x)
+    let if_valid: ValidatedArgset -> ValidArgset option = function 
+        |(Valid x) -> Some x
+        |(Invalid _) -> None
+
+    List.choose if_valid argsets
+
 let artwork (ValidArgset argset): Artwork =
     {
         Artwork.image   = List.item 0 argset

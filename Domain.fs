@@ -20,14 +20,17 @@ let guessResult (command:Commands.GuessResultCommand): Result<Events.DomainEvent
             }]
 
 let newTest (command:Commands.NewTestCommand) generator test: Result<Events.DomainEvent list,Error> =
-    [ Events.NewQuizStarted {
-        sid = command.sub_id
-        variants_count = command.variants_count
-        generator = generator   
-    };Events.TestSended {
-        sid = command.sub_id
-        test = test 
-    }] |> Ok
+    [ 
+        Events.NewQuizStarted {
+            sid = command.sub_id
+            variants_count = command.variants_count
+            generator = generator   
+        };
+        Events.TestSended {
+            sid = command.sub_id
+            test = test 
+        };
+    ] |> Ok
 
 let nextTest (command:Commands.NextTestCommand) test: Result<Events.DomainEvent list,Error> =
     [ Events.TestSended {

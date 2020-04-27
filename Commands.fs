@@ -3,7 +3,7 @@ open Infrastructure
 open Events
 open Errors
 open DomainTypes
-type SubscriptionId = SubscriptionId of int
+
 
 type GuessResultCommand = {
     sub_id : int
@@ -26,5 +26,6 @@ type Command =
 
 type EventPublisher = EventPublisher of (DomainEvent list -> unit Async)
 type Commands = Commands of Command []
-type CommandProcessor = (Command -> Asyncresult<DomainEvent list,Error>)
-type CommandMatcher = CommandMatcher of (Command -> SubscriptionId*CommandProcessor)
+
+type CommandProcessor = unit -> Asyncresult<DomainEvent list,Error>
+type CommandMatcher = CommandMatcher of (Command -> SubscriptionId * CommandProcessor)

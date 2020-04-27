@@ -31,7 +31,12 @@ type DomainEvent =
     |NewQuizStarted of NewQuizStartedEvent
     |TestSended of TestSendedEvent
 
+type UserSentMessageEvent =
+    {
+        user_id : int
+        message : string
+    }
 type ExternalEvent =
-    |UserSentMessage
+    |UserSentMessage of UserSentMessageEvent
     |UserEditMessage
 

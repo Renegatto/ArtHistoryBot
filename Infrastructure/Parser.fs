@@ -71,8 +71,8 @@ module Userinput =
     }
     let signatures = [
         { name = "new"    ; args_count = 2; parser = New     Parsers.new_quiz };
-        { name = "next"     ; args_count = 0; parser = Next    Parsers.next     };
-        { name = "answer"  ; args_count = 2; parser = Answer  Parsers.answer   };
+        { name = "next"   ; args_count = 0; parser = Next    Parsers.next     };
+        { name = "answer" ; args_count = 2; parser = Answer  Parsers.answer   };
     ]
     open Infrastructure
     let (|ValidInstruction|_|) (word, potential_args): Option<Instruction * string list> =
@@ -110,11 +110,6 @@ module Userinput =
                 |_ -> collectInstructions collected other_words
             |[] -> List.rev collected
 
-        
-        (*let lookup (instructions:string list): Option<Instruction * (string list)> = // string list -> Option<Instruction, string list>
-            match List.head instructions, List.tail instructions with
-            |ValidInstruction x -> Some x
-            |_ -> None*)
         String.trimWhiteSpaces 
         >> compressedSpaces 
         >> String.split (seq {yield " "})

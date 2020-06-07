@@ -36,6 +36,12 @@ type ResultComprehension() =
     member x.Zero() = Ok ()
 let result = new ResultComprehension()
 
+type OptionComprehension() = 
+    member x.Bind(a,fn) = Option.bind fn a 
+    member x.Return(a) = Some a 
+    member x.Zero() = Some ()
+    member x.ReturnFrom(a) = a
+let option = new OptionComprehension()
 
 type Asyncresult<'a,'b> = Async<Result<'a,'b>>
 module Asyncresult =

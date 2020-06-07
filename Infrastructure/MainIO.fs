@@ -24,7 +24,7 @@ module Storage =
     }
     let artworks (): Asyncresult<Artwork list,Error> = asyncresult {
         let! lines = content () |> Asyncresult.okAsync
-        return Parser.artworks_from_lines lines
+        return Parser.Artworks.artworks_from_lines lines
     }
 
 module Randoms =

@@ -52,17 +52,24 @@ module Randoms =
                      |> List.map (fun (i,artwork) -> Constructors.variant i artwork) 
         return result
     }
-    let testBuilder (variants_count: int) (artworks:Artwork List) (): Result<Test,Error> IO = 
-        match List.length artworks >= variants_count with
-        |true -> io {
+    let testBuilder (variants_count: int) (artworks:Artwork List) (): Result<Test IO,Error> = 
+        let enoughArtworks = 
+            match List.length artworks >= variants_count with
+            |true -> Ok artworks
+            |false -> 
+                NotEnoughArtworksForTest {expected = variants_count; got = List.length artworks} 
+                |> Domain |> Error
+
+        let new_test artworks = io {
                 let! all_variants = variants variants_count artworks ()
                 let! right_variant = variant all_variants ()
                 let test = Constructors.test right_variant all_variants
-                return Ok test
+                return test
             }
-        |false -> 
-            NotEnoughArtworksForTest {expected = variants_count; got = List.length artworks} 
-            |> Domain |> Error |> IO
+
+        enoughArtworks
+        |> Result.map new_test
+
 module Subscriptions =
     open Infrastructure
     open FSharpPlus

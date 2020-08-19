@@ -63,7 +63,7 @@ let test_commands () =
 open Infrastructure
 
 let asyncresultMap f = Asyncresult.bind  (Asyncresult.ok << f)
-let asyncresultLift ma x = asyncresultMap (fun ma -> ma x) ma
+//let asyncresultSmthng f = f << Asyncresult.ok
 
 let testTestGeneration () = 
     let foo = List.map (fun _ -> MainIO.Randoms.element [0..20] ()) [0..30]
@@ -71,11 +71,11 @@ let testTestGeneration () =
     let artworks = MainIO.Storage.artworks ()
 
     let bar = 
-        let fn : Asyncresult< unit -> Result<DomainTypes.Test,Errors.Error>, Errors.Error> = asyncresult {
+        let fn (): Asyncresult< Result<DomainTypes.Test IO,Errors.Error>, Errors.Error > = asyncresult {
             let! artworks' = artworks
-            return MainIO.Randoms.testBuilder 5 artworks' >> IO.unwrapInsideAsync //|> IO.map (List.distinct >> List.length)
+            return MainIO.Randoms.testBuilder 5 artworks' ()//|> IO.map (List.distinct >> List.length)
         }
-        asyncresultLift fn >> Async.RunSynchronously
+        fn >> Async.RunSynchronously
 
     printfn "%A" foo |> ignore
     printfn "randoms %A randoms" <| List.map (fun _ -> bar ()) [0..5]

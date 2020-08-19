@@ -50,7 +50,6 @@ module Artworks =
         >> List.map (validateArgset is_argsets_valid) 
         >> validArgsets 
         >> List.map artwork
-
 module Userinput =
     type Instruction =
         |New    of variants:int * tests:int

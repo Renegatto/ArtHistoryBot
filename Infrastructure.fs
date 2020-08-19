@@ -57,6 +57,8 @@ module Asyncresult =
     let ok (x:'a): Asyncresult<'a,_> = async {
         return Ok x
     }
+    let map (f:'a -> 'b) (x: Asyncresult<'a,'c>): Asyncresult<'b,'c> =
+        bind (f >> ok) x
     let error (x:'a): Asyncresult<_,'a> = async {
         return Error x
     }
@@ -68,6 +70,9 @@ module Asyncresult =
         let! y = x
         return Error y
     }
+    let okIO (x:'a IO) : Asyncresult<'a,_> = async {
+        return IO.unwrapInsideAsync x |> Ok
+    } 
     let zero (): Asyncresult<unit,_> = ok ()
     let fromResult (x:Result<'a,'b>): Asyncresult<'a,'b> = async { return x }
 type AsyncResultComprehension() = 

@@ -15,7 +15,9 @@ let nextTest (cmd:NextTestCommand): Asyncresult<DomainEvent list,Error> = asyncr
 }
 let newTest (cmd:NewTestCommand): Asyncresult<DomainEvent list,Error> = asyncresult {
     let! artworks = MainIO.Storage.artworks ()
-    let generator = MainIO.Randoms.testBuilder cmd.variants_count artworks >> IO.unwrapInsideAsync >> Asyncresult.fromResult
+    let generator = 
+        MainIO.Randoms.testBuilder cmd.variants_count artworks 
+        >> Asyncresult.fromResult >> Asyncresult.bind Asyncresult.okIO
     let! test = generator ()
 
     return! Domain.newTest cmd (TestGenerator generator) test |> Asyncresult.fromResult

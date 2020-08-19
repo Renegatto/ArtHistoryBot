@@ -15,7 +15,7 @@ let nextTest (cmd:NextTestCommand): Asyncresult<DomainEvent list,Error> = asyncr
 }
 let newTest (cmd:NewTestCommand): Asyncresult<DomainEvent list,Error> = asyncresult {
     let! artworks = MainIO.Storage.artworks ()
-    let generator = MainIO.Randoms.testBuilder cmd.variants_count artworks >> IO.unwrapInsideAsync >> Asyncresult.ok
+    let generator = MainIO.Randoms.testBuilder cmd.variants_count artworks >> IO.unwrapInsideAsync >> Asyncresult.fromResult
     let! test = generator ()
 
     return! Domain.newTest cmd (TestGenerator generator) test |> Asyncresult.fromResult
@@ -30,8 +30,8 @@ let guessResult (cmd:GuessResultCommand): Asyncresult<DomainEvent list,Error> = 
 }
 let matchCommand: CommandMatcher = 
     CommandMatcher (function
-    |GuessResult cmd    -> SubscriptionId cmd.sub_id, fun () -> guessResult cmd
-    |NewTest cmd        -> SubscriptionId cmd.sub_id, fun () -> newTest     cmd
-    |NextTest cmd       -> SubscriptionId cmd.sub_id, fun () -> nextTest    cmd
+    |GuessResult cmd    -> fun () -> guessResult cmd
+    |NewTest cmd        -> fun () -> newTest     cmd
+    |NextTest cmd       -> fun () -> nextTest    cmd
 
     )

@@ -10,18 +10,20 @@ open Commands
 //    member 
 
 type CommandHandler() = //CommandHandler of (Command -> Result<DomainEvent,Error>)
-    static member private handleCommand (command:Command) 
+    static member private handleCommand
         (EventPublisher publish) 
-        (CommandMatcher matcher)
+        (CommandMatcher processor)
+        (sid: SubscriptionId)
+        (command:Command)
         : Asyncresult<DomainEvent list,Error> = asyncresult {
 
-        let (sid, processor) = matcher command
         let! stored_data = Subscriptions.readData sid
-        let! event = processor ()// stored_data
+        let! events = processor command ()// stored_data
 
-        publish event |> ignore
+        List.map (fun event -> (sid,event)) events 
+        |> publish |> ignore
 
-        return event
+        return events
     }
     static member handle = CommandHandler.handleCommand
     //static member observe =  implement IObservable interface, 

@@ -7,7 +7,7 @@ open Errors
     |TestFailed of TestFailedEvent
     |NewQuizStarted of NewQuizStartedEvent
     |TestSended of TestSendedEvent*)
-module External =
+(*module External =
     let userSentMessage (event: UserSentMessageEvent):  Asyncresult<Commands.Command list,Error> =
         let (|Prefix|_|) (pre:string) (whole:string) =
             if whole.StartsWith(pre) then (Some<<whole.Substring) pre.Length else None
@@ -40,4 +40,4 @@ module Domain =
         return List.empty }
     //let newQuizStarted (event: NewQuizStartedEvent): Asyncresult<Commands.Command list,Error> = 0
     //let testFailed (event: TestFailedEvent): Asyncresult<Commands.Command list,Error> = 0
-    //let testSended (event: TestSendedEvent): Asyncresult<Commands.Command list,Error> = 0
+    //let testSended (event: TestSendedEvent): Asyncresult<Commands.Command list,Error> = 0*)

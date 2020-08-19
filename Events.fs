@@ -3,24 +3,20 @@ open DomainTypes
 
 type NewQuizStartedEvent =
     {
-        sid : int
         generator : TestGenerator
         variants_count : int
     }
 type TestSendedEvent =
     {
-        sid : int
         test : Test
     }
 type TestSolvedEvent =
     {
-        sid : int
         test : Test
         answer : Variant
     }
 type TestFailedEvent =
     {
-        sid : int
         test : Test
         answer : Variant
     }

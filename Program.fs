@@ -3,7 +3,7 @@
 module Program
 open BotTest
 open FSharpPlus
-
+(*
 let test_commands () =
     let publisher xs = async { return () }
     let CommandHandler cmd = 
@@ -57,16 +57,54 @@ let test_commands () =
     }
     for x in [0..10] do
     Async.RunSynchronously check_stuff
+*)
 
+
+open Infrastructure
+
+let asyncresultMap f = Asyncresult.bind  (Asyncresult.ok << f)
+let asyncresultLift ma x = asyncresultMap (fun ma -> ma x) ma
+
+let testTestGeneration () = 
+    let foo = List.map (fun _ -> MainIO.Randoms.element [0..20] ()) [0..30]
+
+    let artworks = MainIO.Storage.artworks ()
+
+    let bar = 
+        let fn : Asyncresult< unit -> Result<DomainTypes.Test,Errors.Error>, Errors.Error> = asyncresult {
+            let! artworks' = artworks
+            return MainIO.Randoms.testBuilder 5 artworks' >> IO.unwrapInsideAsync //|> IO.map (List.distinct >> List.length)
+        }
+        asyncresultLift fn >> Async.RunSynchronously
+
+    printfn "%A" foo |> ignore
+    printfn "randoms %A randoms" <| List.map (fun _ -> bar ()) [0..5]
+    ()
 
 [<EntryPoint>]
 let main argv = 
+    
+    let baz = None
+    (*let bar word potential_args = 
+        let predicate (signature:Parser.Userinput.InstructionSignature) = 
+            signature.name = word 
+            && signature.args_count >= List.length potential_args
+        List.filter predicate Parser.Userinput.signatures
+        Infrastructure.option{
+            let! matched_signature = List.filter predicate Parser.Userinput.signatures
+            //let args_to_parse, remains = List.splitAt matched_signature.args_count potential_args
+            return matched_signature//args_to_parse, remains
+    }*)
+
+    Parser.Userinput.instructions_from_line "new 5 3 hehe rakal 666 next answer 3 boogard"
+    |> printfn "%A-%A--" baz
     printfn "%A" argv
-    let foo = List.map (fun _ -> MainIO.Randoms.element [0..20] ()) [0..30]
-
-    printfn "%A" foo |> ignore
-
-    test_commands () |> ignore
+    
+    printfn "now..."
+    Async.RunSynchronously (Test.testThisShit ())
+    |> printfn "%A"
+    printfn "called..."
+    //test_commands () |> ignore
     (*let CM = 
         match CommandProcessors.matchCommand with
         |Commands.CommandMatcher x -> x

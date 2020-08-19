@@ -42,7 +42,7 @@ module Randoms =
         rng.Next (0, List.length xs)
         |> flip List.item xs
         |> IO
-    let sample count (xs: 'a list) () : 'a list IO = // позволяет выбирать несколько раз одно и то же
+    let sample count (xs: 'a list) () : 'a list IO = //fixed? позволяет выбирать несколько раз одно и то же
         shuffle xs |> IO.map (List.take count)
     let artwork :Artwork list -> unit -> Artwork IO = element
     let variant :AnswerVariant list -> unit -> AnswerVariant IO = element
@@ -52,13 +52,17 @@ module Randoms =
                      |> List.map (fun (i,artwork) -> Constructors.variant i artwork) 
         return result
     }
-    let testBuilder (variants_count: int) (artworks:Artwork List) (): Test IO = 
-        io {
-            let! all_variants = variants variants_count artworks ()
-            let! right_variant = variant all_variants ()
-            let test = Constructors.test right_variant all_variants
-            return test
-        }
+    let testBuilder (variants_count: int) (artworks:Artwork List) (): Result<Test,Error> IO = 
+        match List.length artworks >= variants_count with
+        |true -> io {
+                let! all_variants = variants variants_count artworks ()
+                let! right_variant = variant all_variants ()
+                let test = Constructors.test right_variant all_variants
+                return Ok test
+            }
+        |false -> 
+            NotEnoughArtworksForTest {expected = variants_count; got = List.length artworks} 
+            |> Domain |> Error |> IO
 module Subscriptions =
     open Infrastructure
     open FSharpPlus
@@ -91,7 +95,8 @@ module Subscriptions =
             Array.set subscriptions release { Subscription.sid=SubscriptionId release; meta=""; data=NoData }
         |None ->
             let sid = Array.length subscriptions + 1
-            Array.set subscriptions sid { Subscription.sid=SubscriptionId sid; meta=""; data=NoData }
+            subscriptions <- Array.append subscriptions [|{ Subscription.sid=SubscriptionId sid; meta=""; data=NoData }|]
+            ()
 
         Array.last subscriptions |> Asyncresult.ok
     let unsubscribe (sid:SubscriptionId): Asyncresult<SubscriptionId,Error> = asyncresult {

@@ -6,16 +6,13 @@ open DomainTypes
 
 
 type GuessResultCommand = {
-    sub_id : int
     test : Test
     answer : Variant
 }
 type NewTestCommand = {
-    sub_id : int
     variants_count : int
 }
 type NextTestCommand = {
-    sub_id : int
     generator : TestGenerator
 }
 
@@ -24,8 +21,8 @@ type Command =
     |NewTest of NewTestCommand
     |NextTest of NextTestCommand
 
-type EventPublisher = EventPublisher of (DomainEvent list -> unit Async)
+type EventPublisher = EventPublisher of ((SubscriptionId * DomainEvent) list -> unit Async)
 type Commands = Commands of Command []
 
 type CommandProcessor = unit -> Asyncresult<DomainEvent list,Error>
-type CommandMatcher = CommandMatcher of (Command -> SubscriptionId * CommandProcessor)
+type CommandMatcher = CommandMatcher of (Command -> CommandProcessor)

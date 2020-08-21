@@ -3,6 +3,11 @@
 module Program
 open BotTest
 open FSharpPlus
+let goo () = 
+    let t = new System.Timers.Timer(4000.0)
+    t.Elapsed.Add(fun _ -> printfn "%A" EventHub.Internals.eventHub)
+    t.AutoReset <- false
+    t.Start()
 (*
 let test_commands () =
     let publisher xs = async { return () }
@@ -101,8 +106,9 @@ let main argv =
     printfn "%A" argv
     
     printfn "now..."
-    Async.RunSynchronously (Test.testThisShit ())
-    |> printfn "%A"
+    Async.StartAsTask (Test.testThisShit ())
+    goo ()
+    // |> printfn "eventHub: %A %A" EventHub.Internals.eventHub
     printfn "called..."
     //test_commands () |> ignore
     (*let CM = 

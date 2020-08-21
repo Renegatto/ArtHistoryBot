@@ -1,5 +1,6 @@
 ﻿module Infrastructure
 let flip f x y = f y x
+let constant x _ = x
 type IO<'a> = IO of 'a with
 
     //this kind of IO can join to Async to avoid complicated code
@@ -24,6 +25,10 @@ type IO<'a> = IO of 'a with
     static member traverse (fn: 'a -> 'b IO): 'a list -> 'b list IO =
         IO << List.map (IO.extract<<fn)
     static member unwrapInsideAsync<'a> (x: 'a IO ): 'a = IO.extract x
+    static member compose (f: 'b -> 'c IO) (g: 'a -> 'b IO) (x:'a): 'c IO =
+        IO.bind f <| g x
+    static member andThen (f: 'a -> 'b IO) (g: 'b -> 'c IO) : 'a -> 'c IO =
+        IO.compose g f
 type IOComprehension() =
     member x.Bind(a,fn) = IO.bind fn a 
     member x.Return(a) = IO a 
@@ -72,9 +77,20 @@ module Asyncresult =
     }
     let okIO (x:'a IO) : Asyncresult<'a,_> = async {
         return IO.unwrapInsideAsync x |> Ok
-    } 
+    }
+
     let zero (): Asyncresult<unit,_> = ok ()
     let fromResult (x:Result<'a,'b>): Asyncresult<'a,'b> = async { return x }
+    type M<'a,'b> = Asyncresult<'a,'b>
+    let next (a: M<_,_>) (b:M<'a,'b>): M<'a,'b> = async {
+        let! a' = a
+        let! b' = b
+        return constant b' a'
+    }
+    let compose (f: 'b -> M<'c,_>) (g: 'a -> M<'b,_>) (x:'a): M<'c,_> = 
+        bind f (async { return! g x })
+    let andThen (f: 'a -> M<'b,_>) (g: 'b -> M<'c,_>): 'a -> M<'c,_> =
+        compose g f
 type AsyncResultComprehension() = 
     member x.Bind(a,fn) = Asyncresult.bind fn a 
     member x.Return(a) = Asyncresult.ok a 

@@ -2,6 +2,7 @@
 open Infrastructure
 open Events
 open Errors
+
 (*type DomainEvent =
     |TestSolved of TestSolvedEvent
     |TestFailed of TestFailedEvent

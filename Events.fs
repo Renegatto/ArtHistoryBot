@@ -36,3 +36,6 @@ type ExternalEvent =
     |UserSentMessage of UserSentMessageEvent
     |UserEditMessage
 
+type Event =
+    |Domain of DomainEvent
+    |External of ExternalEvent

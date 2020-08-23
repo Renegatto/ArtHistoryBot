@@ -15,14 +15,17 @@ type NewTestCommand = {
 type NextTestCommand = {
     generator : TestGenerator
 }
+type NotifyUserCommand = {
+    notification : string
+}
 
 type Command = 
     |GuessResult of GuessResultCommand
     |NewTest of NewTestCommand
     |NextTest of NextTestCommand
+    |NotifyUser of NotifyUserCommand
 
-type EventPublisher = EventPublisher of ((SubscriptionId * DomainEvent) list -> Asyncresult<unit,Error>)
-type Commands = Commands of Command []
+type Commands = Commands of Command  list
 
 type CommandProcessor = unit -> Asyncresult<DomainEvent list,Error>
 type CommandMatcher = CommandMatcher of (Command -> CommandProcessor)

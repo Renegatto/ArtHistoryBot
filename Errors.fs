@@ -3,6 +3,15 @@ module EventHubErrors =
     type NotFoundError = NotFoundError of sid:int * details:string option
     type EventHubError =
         |NotFound of NotFoundError
+        |NoNotProcessedFound
+        |IndexNotFound of index:int * details:string option
+module CommandHubErrors =
+    type NotFoundError = NotFoundError of sid:int * details:string option
+    type CommandHubError =
+        |NotFound of NotFoundError
+        |NoNotProcessedFound
+        |IndexNotFound of index:int * details:string option
+
 type DatabaseError = DatabaseError of string
 type StorageError = StorageError of string
 type NotEnoughArtworksForTestError = {expected : int; got : int}
@@ -19,3 +28,4 @@ type Error =
     |Domain of DomainError
     |Subscription of SubscriptionError
     |EventHub of EventHubErrors.EventHubError
+    |CommandHub of CommandHubErrors.CommandHubError

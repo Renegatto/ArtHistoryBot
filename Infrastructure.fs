@@ -1,6 +1,34 @@
 ﻿module Infrastructure
+open FSharpPlus
 let flip f x y = f y x
 let constant x _ = x
+let apply x f = f x
+let uncurry f (x,y) = f x y
+let tryMatch p x = if p x then Some x else None
+module InterfaceTools =
+
+    let freeIndex (xs:'a option []):int option =
+        Array.tryFindIndex (function None -> true |_ -> false) xs
+
+    let addInto (xs: 'a option [] ref) (x:'a): int =
+        let xs' = xs.contents
+        match freeIndex xs' with
+        |Some index -> 
+            Array.set xs' index (Some x)
+            xs.contents <- xs'
+            index
+        |None ->
+            xs.contents <- Array.append [|Some x|] xs'
+            //printfn "appending %A %A" x xs
+            Array.length xs'
+module Result =
+    let liftM2 (fn:'a -> 'b -> 'c) (a:Result<'a,_>) (b:Result<'b,_>): Result<'c,_> =
+        (Result.map fn a |> Result.apply) b
+    let fromOption (err:'err):'a option -> Result<'a,'err> =
+        function Some x -> Ok x |_ -> Error err
+    let seqList (xs: Result<'a,'b> list): Result<'a list,'b> =
+        let fn = liftM2 (fun acc x -> x::acc)
+        in List.fold fn (Ok []) xs
 type IO<'a> = IO of 'a with
 
     //this kind of IO can join to Async to avoid complicated code
@@ -78,10 +106,16 @@ module Asyncresult =
     let okIO (x:'a IO) : Asyncresult<'a,_> = async {
         return IO.unwrapInsideAsync x |> Ok
     }
+    let fromOption (err:'err) (x:'a option): Asyncresult<'a,'err> =
+        match x with
+        |Some value -> ok value
+        |None -> error err
+    type M<'a,'b> = Asyncresult<'a,'b>
 
+    let flatten (x: M<M<'a,'c>,'c>):M<'a,'c> = bind id x 
     let zero (): Asyncresult<unit,_> = ok ()
     let fromResult (x:Result<'a,'b>): Asyncresult<'a,'b> = async { return x }
-    type M<'a,'b> = Asyncresult<'a,'b>
+    
     let next (a: M<_,_>) (b:M<'a,'b>): M<'a,'b> = async {
         let! a' = a
         let! b' = b
@@ -91,6 +125,20 @@ module Asyncresult =
         bind f (async { return! g x })
     let andThen (f: 'a -> M<'b,_>) (g: 'b -> M<'c,_>): 'a -> M<'c,_> =
         compose g f
+    let seqList (a: M<'a,'b> list): M<'a list,'b> =
+        let outside (acc:M<'a list,'b>) (x:M<'a,'b>): M<'a list,'b> =
+            async {
+                let! acc' = acc
+                let! x' = x
+                let result = 
+                    match acc',x' with
+                    |Ok acc'', Ok x'' -> Ok (x'' :: acc'')
+                    |Error err,_ -> Error err
+                    |_, Error err -> Error err
+                return result
+            }
+        List.fold outside (ok []) a
+        
 type AsyncResultComprehension() = 
     member x.Bind(a,fn) = Asyncresult.bind fn a 
     member x.Return(a) = Asyncresult.ok a 

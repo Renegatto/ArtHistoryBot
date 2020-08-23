@@ -4,14 +4,41 @@ open Infrastructure
 open Errors
 open Events
 
-type CommandPublisher = CommandPublisher of (Commands.Command list -> unit Async) //cycle depend.
+type R<'a> = Asyncresult<'a,Errors.Error>
+type R'<'a> = Result<'a,Errors.Error>
+type StoredCommand = (DomainTypes.SubscriptionId * Commands.Command)
+type StoredCommands = StoredCommand list
+type Commands = Commands.Command list
+type StoredEvent = (DomainTypes.SubscriptionId * Event)
+type StoredEventFold<'a> = StoredEvent list -> 'a
+type CommandPublisher = 
+    |CommandPublisher of (StoredCommand list 
+         -> Asyncresult<unit,Error>) //cyclic dependendency.
 
-type Events = Events of Events []
+//type Events = Events of Events list
 
-type DomainEventProcessor   = unit -> Asyncresult<Commands.Command list,Error>
-type ExternalEventProcessor = unit -> Asyncresult<Commands.Command list,Error>
+type EventProcessor = 
+    DomainTypes.SubscriptionId -> Commands R' StoredEventFold
+type DomainEventProcessor   = 
+    DomainTypes.SubscriptionId -> Commands R' StoredEventFold
+type ExternalEventProcessor = 
+    DomainTypes.SubscriptionId -> Commands R' StoredEventFold
 
 type DomainEventMatcher = 
-    DomainEventMatcher of (DomainEvent -> DomainTypes.SubscriptionId * DomainEventProcessor)
+    DomainEventMatcher      of (DomainEvent -> DomainEventProcessor)
 type ExternalEventMatcher = 
-    ExternalEventMatcher of (ExternalEvent -> DomainTypes.SubscriptionId * ExternalEventProcessor)
+    ExternalEventMatcher    of (ExternalEvent -> ExternalEventProcessor)
+type EventMatcher = 
+    EventMatcher            of (Event -> EventProcessor)
+
+let handle
+    (EventMatcher processor)
+    (sid: DomainTypes.SubscriptionId)
+    (event:Event)
+    : StoredCommands R' StoredEventFold = fun events -> result {
+        let! commands = processor event sid events
+        let identified_commands = List.map (fun command -> sid,command) commands 
+        return identified_commands
+    }
+    //static member observe =  implement IObservable interface, 
+    //that will respond to Subscriptions changing and notify subcriber

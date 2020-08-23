@@ -23,17 +23,16 @@ let newTest (cmd:NewTestCommand): Asyncresult<DomainEvent list,Error> = asyncres
     return! Domain.newTest cmd (TestGenerator generator) test |> Asyncresult.fromResult
 }
 let guessResult (cmd:GuessResultCommand): Asyncresult<DomainEvent list,Error> = asyncresult {
-    //let! artworks = MainIO.Storage.artworks ()
-    //let generator = MainIO.Randoms.testBuilder cmd.variants_count artworks >> IO.unwrapInsideAsync >> Asyncresult.ok
-    //let! test = generator ()
-
-    //return! Domain.newTest cmd (TestGenerator generator) test |> Asyncresult.fromResult
-    return! Domain.guessResult cmd |> Asyncresult.fromResult //cmd. (TestGenerator generator) test 
+    return! Domain.guessResult cmd |> Asyncresult.fromResult
 }
-let matchCommand: CommandMatcher = 
-    CommandMatcher (function
-    |GuessResult cmd    -> fun () -> guessResult cmd
-    |NewTest cmd        -> fun () -> newTest     cmd
-    |NextTest cmd       -> fun () -> nextTest    cmd
+let notifyUser (cmd:NotifyUserCommand): Asyncresult<DomainEvent list,Error> =
+    printfn "%s" cmd.notification |> ignore
+    Asyncresult.ok [Events.UserNotified {notification = cmd.notification}]
 
+let matchCommand: CommandMatcher = 
+    CommandMatcher (constant << function
+    |GuessResult cmd    -> guessResult cmd
+    |NewTest cmd        -> newTest     cmd
+    |NextTest cmd       -> nextTest    cmd
+    |NotifyUser cmd     -> notifyUser  cmd
     )

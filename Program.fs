@@ -3,12 +3,13 @@
 module Program
 open BotTest
 open FSharpPlus
+(*
 let goo () = 
     let t = new System.Timers.Timer(4000.0)
     t.Elapsed.Add(fun _ -> printfn "%A" EventHub.Internals.eventHub)
     t.AutoReset <- false
     t.Start()
-(*
+
 let test_commands () =
     let publisher xs = async { return () }
     let CommandHandler cmd = 
@@ -106,62 +107,11 @@ let main argv =
     printfn "%A" argv
     
     printfn "now..."
-    Async.StartAsTask (Test.testThisShit ())
-    goo ()
+    Test.testThisShit () |> Async.RunSynchronously
+    |> ignore
+    //goo ()
     // |> printfn "eventHub: %A %A" EventHub.Internals.eventHub
     printfn "called..."
-    //test_commands () |> ignore
-    (*let CM = 
-        match CommandProcessors.matchCommand with
-        |Commands.CommandMatcher x -> x
-
-    let manuallyProcessCommand =  CM>>snd>>(fun f -> f ())
-
-    let cmd1 = Commands.NewTest { 
-        Commands.NewTestCommand.sub_id = 666
-        Commands.NewTestCommand.variants_count = 3
-    }
-    let check_stuff = async {
-        let! result = manuallyProcessCommand cmd1
-        let guess events: Infrastructure.Asyncresult<Events.DomainEvent list,Errors.Error> = 
-            match List.rev events |> List.head with
-            |Events.TestSended x ->
-                Commands.GuessResult {
-                    Commands.GuessResultCommand.answer = 2
-                    Commands.GuessResultCommand.sub_id = x.sid
-                    Commands.GuessResultCommand.test = x.test
-                } |> manuallyProcessCommand
-        let next_quiz events =
-            match List.head events with
-            |Events.NewQuizStarted x -> Commands.NextTest { 
-                Commands.NextTestCommand.sub_id = x.sid
-                Commands.NextTestCommand.generator = x.generator
-            } |> manuallyProcessCommand
-
-        let! guessresult = 
-            Infrastructure.Asyncresult.fromResult result 
-            |> Infrastructure.Asyncresult.bind guess
-        let! nexttest = 
-            Infrastructure.Asyncresult.fromResult result 
-            |> Infrastructure.Asyncresult.bind next_quiz
-        let! nextresult = 
-            Infrastructure.Asyncresult.fromResult nexttest
-            |> Infrastructure.Asyncresult.bind guess
-        let! nexttest2 = 
-            Infrastructure.Asyncresult.fromResult result 
-            |> Infrastructure.Asyncresult.bind next_quiz
-        let! nextresult2 = 
-            Infrastructure.Asyncresult.fromResult nexttest2
-            |> Infrastructure.Asyncresult.bind guess
-
-        printfn "%A \n--------------and result------------ \n %A" result guessresult
-        printfn "\n================== \n"
-        printfn "%A \n--------------and result------------ \n %A" nexttest nextresult
-        printfn "\n================== \n"
-        printfn "%A \n--------------and result------------ \n %A" nexttest2 nextresult2
-    }
-    for x in [0..10] do
-        Async.RunSynchronously check_stuff*)
     
     while true do
         //make_connection ()

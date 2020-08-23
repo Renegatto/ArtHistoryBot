@@ -20,12 +20,16 @@ type TestFailedEvent =
         test : Test
         answer : Variant
     }
-
+type UserNotifiedEvent =
+    {
+        notification : string
+    }
 type DomainEvent =
     |TestSolved of TestSolvedEvent
     |TestFailed of TestFailedEvent
     |NewQuizStarted of NewQuizStartedEvent
     |TestSended of TestSendedEvent
+    |UserNotified of UserNotifiedEvent
 
 type UserSentMessageEvent =
     {

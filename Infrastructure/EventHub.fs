@@ -5,26 +5,13 @@ open Errors.EventHubErrors
 
 type Event = Events.Event
 type Error = Errors.Error
-type R<'a,'b> = Asyncresult<'a,'b>
+type R<'a> = Asyncresult<'a,Errors.Error>
+type R'<'a> = Result<'a,Error>
 type StoredEvent = SubscriptionId * Event
 
-let sidInt (SubscriptionId x) = x
-
-module Internals =
-    let mutable eventHub: StoredEvent list = []
-
-    let eventSid : StoredEvent -> SubscriptionId  = fst
-    let event    : StoredEvent -> Event           = snd
-    let events   : StoredEvent list -> Event list = List.map event
-
-    let eventsInfoOf sid : R<StoredEvent list, Error> =
-        List.filter (eventSid >> (=) sid) eventHub
-        |> Asyncresult.ok
-
-    let filterInfo (filter: StoredEvent -> StoredEvent option): StoredEvent list =
-        List.choose filter eventHub
-    
-    let findInfo = filterInfo >> List.tryHead
+//type HubbedEvent =
+//    |Processed of StoredEvent
+//    |NotProcessed of StoredEvent
 
 module DataSelectors =
     let testFromEvent (event:Event): Test option =
@@ -43,48 +30,157 @@ module DataSelectors =
             match event with
             |Events.NewQuizStarted event -> Some event.generator
             |_ -> None
-        |_ -> None
+        |_ -> None   
 
-let publish (events_info : StoredEvent list): R<unit,Error> =
-    Internals.eventHub <- List.append Internals.eventHub events_info
+let sidInt (SubscriptionId x) = x
+
+let eventHub: StoredEvent [] = Array.empty
+let readEventHub () = Array.toList eventHub
+
+let eventSid : StoredEvent -> SubscriptionId  = fst
+let event    : StoredEvent -> Event           = snd
+let events   : StoredEvent list -> Event list = List.map event
+
+type EventListFold<'a> = StoredEvent list -> 'a
+type EventListMapper<'a> = StoredEvent list -> 'a list
+type EventListFolder<'a> = StoredEvent list -> 'a list
+type EventListFilter = StoredEvent list -> StoredEvent list
+
+let eventsInfoOf sid: StoredEvent -> bool = eventSid >> (=) sid
+
+let filterInfo (filter: StoredEvent -> StoredEvent option): EventListFilter =
+    List.choose filter  
+
+let findInfo filter = filterInfo filter >> List.tryHead
+
+let eventsInfosOf sid: StoredEvent EventListFolder =
+    filterInfo (eventsInfoOf sid |> tryMatch)
+
+let eventsOf (sid:SubscriptionId): Event EventListFolder =
+    eventsInfosOf sid >> (List.unzip >> snd)
+
+let extractFromEventsOf (selector: Event -> 'data option) (sid: SubscriptionId): 'data EventListFolder =
+    eventsOf sid >> List.choose selector
+
+let testsOf (sid:SubscriptionId): Test EventListFolder = 
+    extractFromEventsOf DataSelectors.testFromEvent sid
+
+let testGeneratorsOf (sid:SubscriptionId): TestGenerator EventListFolder =
+    extractFromEventsOf DataSelectors.generatorFromEvent sid
+
+let lastTestOf (sid:SubscriptionId): Test R' EventListFold =
+    let error = 
+        NotFoundError (sidInt sid, Some "lastTestOf")
+        |> NotFound |> Errors.EventHub
+    in testsOf sid >> List.tryHead >> Result.fromOption error
+
+let lastTestGeneratorOf (sid:SubscriptionId):TestGenerator R' EventListFold = 
+    let error = 
+        NotFoundError (sidInt sid, Some "lastTestGeneratorOf")
+        |> NotFound |> Errors.EventHub
+    in testGeneratorsOf sid >> List.tryHead >> Result.fromOption error
+
+    (*let storedEvent : HubbedEvent -> StoredEvent  =
+        function
+        |Processed stored -> stored
+        |NotProcessed stored -> stored
+    let storedEvents : HubbedEvent [] -> StoredEvent list =
+        Array.map storedEvent >> Array.toList*)
+
+
+
+
+(*
+    let push (x:HubbedEvent): unit R =
+        eventHub <- Array.append eventHub [|x|]
+        Asyncresult.ok ()
+
+    let modify (id:int): HubbedEvent -> unit R =
+        match Array.tryItem id eventHub with
+        |Some _ ->
+            Array.set eventHub id >> Asyncresult.ok
+        |None -> 
+            IndexNotFound (id, Some "cannot modify: no item exists")
+            |> Errors.EventHub |> Asyncresult.error |> constant 
+            
+
+let lastNonProcessed (): (int*StoredEvent) R =
+    Array.tryFindIndex (function NotProcessed _ -> true |_ -> false) Internals.eventHub
+    |> function
+        |Some index ->
+            let elem = Array.get Internals.eventHub >> Internals.storedEvent in
+            Asyncresult.ok (index,elem index)
+        |None -> 
+    
+    NoNotProcessedFound |> Errors.EventHub |> Asyncresult.error *)
+let fn (x:int ref): unit =
+    x.contents <- x.contents + 9
+let foo () =
+    let bar = ref 7
+    fn bar
+    printfn "%A" bar
+foo ()
+
+
+type Observer<'a> = System.IObserver<'a>
+type Observable<'a> = System.IObservable<'a>
+
+type Unsubscribe(index:int, xs:_ option [], unsubscribes:int option [] ref) =
+
+    interface System.IDisposable with
+        member _.Dispose() =
+            Array.set xs index None
+            InterfaceTools.addInto unsubscribes index
+            |> ignore
+open FSharpPlus
+type EventHub() =
+
+    let eventHub: StoredEvent [] ref = ref Array.empty
+
+    let observers: StoredEvent Observer option [] ref = ref [||]
+    let unsubscibes: int option [] ref = ref [||]
+
+    member _.read (): StoredEvent list R =
+        Array.toList eventHub.contents
+        |> Asyncresult.ok
+
+    member o.filterData (filter: StoredEvent -> 'data option): 'data list R =
+         o.read () |> Asyncresult.map (List.choose filter)  
+
+    member o.processData (f:StoredEvent list -> 'data):'data R = // StoredEventFold a -> R a
+        o.read () |> Asyncresult.map f
+
+    member o.push (event:StoredEvent): unit R =
+        //printfn "i were pushed with %A" observers.contents
+        eventHub.contents <- Array.append [|event|] eventHub.contents
+        o.notifyAll event
+        |> Asyncresult.ok
+
+    member o.publishDomain (events:(SubscriptionId * Events.DomainEvent) list): unit R =
+        List.map (fun (id,event) -> o.push(id,Events.Domain event)) events 
+        |> ignore |> Asyncresult.ok 
+
+    member o.notifyAll value =
+        let fn (x:StoredEvent Observer) = x.OnNext value 
+        Array.map (Option.map fn) observers.contents |> ignore
+
+    interface System.IObservable<StoredEvent> with
+        member _.Subscribe (observer:System.IObserver<StoredEvent>) =
+            let id = InterfaceTools.addInto observers observer
+            //printfn "they tried to subscribe: %A, and %A" observers.contents id
+            new Unsubscribe(id,observers.contents,unsubscibes) :> System.IDisposable
+
+//====================================================================
+(*
+        
+let publish (hub:EventHub) (events_info : StoredEvent list): unit R =
+    List.map hub.push events_info |> ignore
     Asyncresult.ok ()
 
-let eventsOf : SubscriptionId -> R<Event list,Error> =
-    Internals.eventsInfoOf >> Asyncresult.map (List.unzip >> snd)
-
-let extractFromEventsOf (selector: Event -> 'data option): SubscriptionId -> R<'data list,Error> =
-    eventsOf
-    >> Asyncresult.map (List.choose selector) 
-
-let testsOf : SubscriptionId -> R<Test list,Error> = 
-    extractFromEventsOf DataSelectors.testFromEvent 
-
-let testGeneratorsOf : SubscriptionId -> R<TestGenerator list,Error> =
-    extractFromEventsOf DataSelectors.generatorFromEvent 
-
-let lastFromExtractedOf (selector: SubscriptionId -> R<'data list,Error>) 
-    (error_details: string option)
-    (sid: SubscriptionId): R<'data,Error> = 
-
-    asyncresult {
-        let! generators = selector sid
-        let! result = 
-            match List.rev generators |> List.tryHead with
-            |Some test -> Asyncresult.ok test
-            |None -> 
-                NotFoundError (sidInt sid, error_details)
-                |> NotFound |> Errors.EventHub
-                |> Asyncresult.error
-        return result
-    }
-
-let lastTestOf : SubscriptionId -> R<Test,Error> = 
-    lastFromExtractedOf testsOf (Some "lastTestOf")
-
-let lastTestGeneratorOf : SubscriptionId -> R<TestGenerator,Error> = 
-    lastFromExtractedOf testGeneratorsOf (Some "lastTestGeneratorOf")
+let publishDomain (hub:EventHub) (events_info : (SubscriptionId * Events.DomainEvent) list): unit R =
+    List.map (hub.push << (fun (id,event) -> id,Events.Domain event)) events_info |> ignore
+    Asyncresult.ok () *)
 
 
-//let testGeneratorsOf
 
 // a x* b x * c x * d x

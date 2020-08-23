@@ -22,6 +22,8 @@ module InterfaceTools =
             //printfn "appending %A %A" x xs
             Array.length xs'
 module Result =
+
+    [<System.Obsolete("Result.map2 in FSharpPlus")>]
     let liftM2 (fn:'a -> 'b -> 'c) (a:Result<'a,_>) (b:Result<'b,_>): Result<'c,_> =
         (Result.map fn a |> Result.apply) b
     let fromOption (err:'err):'a option -> Result<'a,'err> =
@@ -77,6 +79,8 @@ type OptionComprehension() =
 let option = new OptionComprehension()
 
 type Asyncresult<'a,'b> = Async<Result<'a,'b>>
+module Async =
+    let wrap (x:'a):'a Async = async {return x}
 module Asyncresult =
     let bind (fn: 'a -> Asyncresult<'b,'c>) (x:Asyncresult<'a,'c>): Asyncresult<'b,'c> = async {
         let! arg1 = x
@@ -87,58 +91,25 @@ module Asyncresult =
         |Error b ->
             return Error b
     }
-    let ok (x:'a): Asyncresult<'a,_> = async {
-        return Ok x
-    }
-    let map (f:'a -> 'b) (x: Asyncresult<'a,'c>): Asyncresult<'b,'c> =
-        bind (f >> ok) x
-    let error (x:'a): Asyncresult<_,'a> = async {
-        return Error x
-    }
-    let okAsync (x:'a Async): Asyncresult<'a,_> = async {
-        let! y = x
-        return Ok y
-    }
-    let errorAsync (x:'a Async): Asyncresult<_,'a> = async {
-        let! y = x
-        return Error y
-    }
-    let okIO (x:'a IO) : Asyncresult<'a,_> = async {
-        return IO.unwrapInsideAsync x |> Ok
-    }
-    let fromOption (err:'err) (x:'a option): Asyncresult<'a,'err> =
-        match x with
-        |Some value -> ok value
-        |None -> error err
-    type M<'a,'b> = Asyncresult<'a,'b>
+    let ok (x:'a): Asyncresult<'a,_> = Ok x |> Async.wrap
+    let map (f:'a -> 'b) (x: Asyncresult<'a,'c>): Asyncresult<'b,'c> = bind (f >> ok) x
+    let ap (fn:Asyncresult<'a -> 'b,_>) (x:Asyncresult<'a,_>): Asyncresult<'b,_> = bind (map >> apply x) fn
+    let liftM2 fn x y = (map fn x |> ap) y
+    let error (x:'a): Asyncresult<_,'a> = Error x |> Async.wrap
+    let okAsync (x:'a Async): Asyncresult<'a,_> = Async.map Ok x
+    let errorAsync (x:'a Async): Asyncresult<_,'a> = Async.map Error x
+    let okIO (x:'a IO) : Asyncresult<'a,_> = IO.unwrapInsideAsync x |> ok
+    let fromResult (x:Result<'a,'b>): Asyncresult<'a,'b> = Async.wrap x
+    let fromOption (err:'err) (x:'a option): Asyncresult<'a,'err> = Option.toResultWith err x |> fromResult
 
+    type M<'a,'b> = Asyncresult<'a,'b>
     let flatten (x: M<M<'a,'c>,'c>):M<'a,'c> = bind id x 
     let zero (): Asyncresult<unit,_> = ok ()
-    let fromResult (x:Result<'a,'b>): Asyncresult<'a,'b> = async { return x }
-    
-    let next (a: M<_,_>) (b:M<'a,'b>): M<'a,'b> = async {
-        let! a' = a
-        let! b' = b
-        return constant b' a'
-    }
-    let compose (f: 'b -> M<'c,_>) (g: 'a -> M<'b,_>) (x:'a): M<'c,_> = 
-        bind f (async { return! g x })
-    let andThen (f: 'a -> M<'b,_>) (g: 'b -> M<'c,_>): 'a -> M<'c,_> =
-        compose g f
-    let seqList (a: M<'a,'b> list): M<'a list,'b> =
-        let outside (acc:M<'a list,'b>) (x:M<'a,'b>): M<'a list,'b> =
-            async {
-                let! acc' = acc
-                let! x' = x
-                let result = 
-                    match acc',x' with
-                    |Ok acc'', Ok x'' -> Ok (x'' :: acc'')
-                    |Error err,_ -> Error err
-                    |_, Error err -> Error err
-                return result
-            }
-        List.fold outside (ok []) a
-        
+    let next (a: M<_,_>) (b:M<'a,'b>): M<'a,'b> = bind (constant b) a
+    let compose (f: 'b -> M<'c,_>) (g: 'a -> M<'b,_>) (x:'a): M<'c,_> = bind f (g x)
+    let andThen (f: 'a -> M<'b,_>) (g: 'b -> M<'c,_>): 'a -> M<'c,_> = compose g f
+    let seqList (a: M<'a,'b> list): M<'a list,'b> = 
+        List.fold (liftM2 List.cons |> flip) (ok []) a 
 type AsyncResultComprehension() = 
     member x.Bind(a,fn) = Asyncresult.bind fn a 
     member x.Return(a) = Asyncresult.ok a 

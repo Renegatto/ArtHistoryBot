@@ -23,16 +23,15 @@ let handleEvent: StoredEvent -> StoredCommand list R' StoredEventsFold =
 type EventHandler(eventHub,commandHub) =
     let unsubscribe: System.IDisposable list ref = ref []
 
-    member o.updated(event) = 
-         printfn "handling event %A..." event
-         let eventHub:EventHub.EventHub = eventHub
-         let commandHub:CommandHub.CommandHub = commandHub
+    let eventHub:EventHub.EventHub = eventHub
+    let commandHub:CommandHub.CommandHub = commandHub
 
-         let foo: StoredEvent list -> StoredCommand list R' = handleEvent event
-         in
-         eventHub.processData foo
+    member o.updated(event) = 
+         printfn "handling event...%A" event
+         eventHub.processData (handleEvent event)
          |> Asyncresult.bind Asyncresult.fromResult
          |> Asyncresult.bind commandHub.publish
+         |> Async.RunSynchronously
          |> ignore   
 
     interface System.IObserver<StoredEvent> with
@@ -52,19 +51,32 @@ type EventHandler(eventHub,commandHub) =
         unsubscribe.contents <- [eventHub.Subscribe(o.updated)]
 
         ()
+open FSharpPlus
+let say s x =
+    printfn s
+    x
 type CommandHandler(eventHub,commandHub) =
     let unsubscribe: System.IDisposable list ref = ref []
-
+    
+    [<System.Obsolete("'actions' is not called from callback sometimes")>]
     member o.update(command) =
         let eventHub: EventHub.EventHub = eventHub
         let commandHub: CommandHub.CommandHub = commandHub
 
         printfn "handling command...%A" command
 
-        eventHub.processData (handleCommand command) 
+        let actions x: unit R = Asyncresult.next 
+                                    (printfn "inside: %A" x |> Asyncresult.ok) 
+                                    (eventHub.publishDomain x)
+ 
+        eventHub.processData (handleCommand command)
+        |> say "now flatten..."
         |> Asyncresult.flatten
-        |> Asyncresult.bind eventHub.publishDomain
-        |> ignore 
+        |> say "flattened" 
+        |> Asyncresult.bind actions //why this shit is not entering here?
+        |> say "binded"
+        |> Async.map ignore |> Async.Start
+        |> ignore |> say "done"
 
     interface System.IObserver<StoredCommand> with
         member _.OnCompleted() =

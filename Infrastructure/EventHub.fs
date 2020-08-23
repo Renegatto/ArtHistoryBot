@@ -9,10 +9,6 @@ type R<'a> = Asyncresult<'a,Errors.Error>
 type R'<'a> = Result<'a,Error>
 type StoredEvent = SubscriptionId * Event
 
-//type HubbedEvent =
-//    |Processed of StoredEvent
-//    |NotProcessed of StoredEvent
-
 module DataSelectors =
     let testFromEvent (event:Event): Test option =
         match event with
@@ -80,48 +76,6 @@ let lastTestGeneratorOf (sid:SubscriptionId):TestGenerator R' EventListFold =
         |> NotFound |> Errors.EventHub
     in testGeneratorsOf sid >> List.tryHead >> Result.fromOption error
 
-    (*let storedEvent : HubbedEvent -> StoredEvent  =
-        function
-        |Processed stored -> stored
-        |NotProcessed stored -> stored
-    let storedEvents : HubbedEvent [] -> StoredEvent list =
-        Array.map storedEvent >> Array.toList*)
-
-
-
-
-(*
-    let push (x:HubbedEvent): unit R =
-        eventHub <- Array.append eventHub [|x|]
-        Asyncresult.ok ()
-
-    let modify (id:int): HubbedEvent -> unit R =
-        match Array.tryItem id eventHub with
-        |Some _ ->
-            Array.set eventHub id >> Asyncresult.ok
-        |None -> 
-            IndexNotFound (id, Some "cannot modify: no item exists")
-            |> Errors.EventHub |> Asyncresult.error |> constant 
-            
-
-let lastNonProcessed (): (int*StoredEvent) R =
-    Array.tryFindIndex (function NotProcessed _ -> true |_ -> false) Internals.eventHub
-    |> function
-        |Some index ->
-            let elem = Array.get Internals.eventHub >> Internals.storedEvent in
-            Asyncresult.ok (index,elem index)
-        |None -> 
-    
-    NoNotProcessedFound |> Errors.EventHub |> Asyncresult.error *)
-let fn (x:int ref): unit =
-    x.contents <- x.contents + 9
-let foo () =
-    let bar = ref 7
-    fn bar
-    printfn "%A" bar
-foo ()
-
-
 type Observer<'a> = System.IObserver<'a>
 type Observable<'a> = System.IObservable<'a>
 
@@ -151,13 +105,14 @@ type EventHub() =
         o.read () |> Asyncresult.map f
 
     member o.push (event:StoredEvent): unit R =
-        //printfn "i were pushed with %A" observers.contents
+        printfn "EHub got event %A" event//"i were pushed with %A" observers.contents
         eventHub.contents <- Array.append [|event|] eventHub.contents
         o.notifyAll event
         |> Asyncresult.ok
 
     member o.publishDomain (events:(SubscriptionId * Events.DomainEvent) list): unit R =
-        List.map (fun (id,event) -> o.push(id,Events.Domain event)) events 
+        List.map (fun (id,event) -> id,Events.Domain event) events
+        |> List.fold (o.push >> Asyncresult.next |> flip) (Asyncresult.ok ())
         |> ignore |> Asyncresult.ok 
 
     member o.notifyAll value =
@@ -169,18 +124,3 @@ type EventHub() =
             let id = InterfaceTools.addInto observers observer
             //printfn "they tried to subscribe: %A, and %A" observers.contents id
             new Unsubscribe(id,observers.contents,unsubscibes) :> System.IDisposable
-
-//====================================================================
-(*
-        
-let publish (hub:EventHub) (events_info : StoredEvent list): unit R =
-    List.map hub.push events_info |> ignore
-    Asyncresult.ok ()
-
-let publishDomain (hub:EventHub) (events_info : (SubscriptionId * Events.DomainEvent) list): unit R =
-    List.map (hub.push << (fun (id,event) -> id,Events.Domain event)) events_info |> ignore
-    Asyncresult.ok () *)
-
-
-
-// a x* b x * c x * d x

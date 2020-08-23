@@ -1,7 +1,7 @@
 ﻿// Learn more about F# at https://fsharp.org
 // See the 'F# Tutorial' project for more help.
 module Program
-open BotTest
+//open BotTest
 open FSharpPlus
 (*
 let goo () = 
@@ -86,6 +86,20 @@ let testTestGeneration () =
     printfn "%A" foo |> ignore
     printfn "randoms %A randoms" <| List.map (fun _ -> bar ()) [0..5]
     ()
+module Foo =
+    open System.IO
+    open System
+    let foo () = 
+        let a x = x * 2 |> Asyncresult.ok
+        let f x = x + 5 |> Asyncresult.ok
+        let b: Asyncresult<Asyncresult<_,_>,_> = Asyncresult.ok (a 5)
+        Asyncresult.compose a f 7
+        (*Asyncresult.flatten b
+        |> Asyncresult.bind f
+        |> Asyncresult.map (printfn "result of internal: %A")
+        Asyncresult.next
+            (printfn "foo" |> Asyncresult.ok)
+            (printfn "bar" |> Asyncresult.ok)*)
 
 [<EntryPoint>]
 let main argv = 
@@ -107,8 +121,17 @@ let main argv =
     printfn "%A" argv
     
     printfn "now..."
+
+    Foo.foo () |> Async.RunSynchronously |> printfn "%A"
+
     Test.testThisShit () |> Async.RunSynchronously
     |> ignore
+    
+    (*(async { 
+       // return! MainIO.Storage.initialize ()
+        let! cont = MainIO.Storage.artworks ()
+        return printfn "artworks: %A" cont 
+    }) |> Async.Start |> ignore*)
     //goo ()
     // |> printfn "eventHub: %A %A" EventHub.Internals.eventHub
     printfn "called..."

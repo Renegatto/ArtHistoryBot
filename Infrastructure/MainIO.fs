@@ -17,13 +17,16 @@ module Storage =
     open Errors
     open Infrastructure
 
-    let content (): Async<string list> = async {
-        let read = new Func<string []>( fun () -> File.ReadAllLines Constants.storageName )
+    let content (): Async<string list> = async { //doesnt work on chief's computer ':D
+        let read = new Func<string []> ( fun () -> File.ReadAllLines Constants.storageName )
         let! content = Async.FromBeginEnd(read.BeginInvoke,read.EndInvoke)
         return content |> Array.toList
     }
+    let content_alt (): Async<string list> = async {
+        return File.ReadAllLines Constants.storageName |> Array.toList
+    }
     let artworks (): Asyncresult<Artwork list,Error> = asyncresult {
-        let! lines = content () |> Asyncresult.okAsync
+        let! lines = (*content*) content_alt ()|> Asyncresult.okAsync
         return Parser.Artworks.artworks_from_lines lines
     }
 

@@ -10,9 +10,6 @@ type HubbedCommand =
     |Processed of StoredCommand
     |NotProcessed of StoredCommand
 
-//let mutable commandHub : HubbedCommand [] = Array.empty
-//let mutable commandHub': StoredCommand list = []
-
 type Unsubscribe(index:int, xs:_ option [], unsubscribes:int option [] ref) =
 
     interface System.IDisposable with
@@ -34,16 +31,16 @@ type CommandHub() =
 
     member o.push (command:StoredCommand): unit R =
         commandHub.contents <- Array.append [|command|] commandHub.contents
-        printfn "CH got some command %A" command
+        printfn "CHub got command %A" command
         o.notifyAll command
         |> Asyncresult.ok
 
     member o.processData (f:StoredCommand list -> 'data):'data R = // StoredEventFold a -> R a
         o.read () |> Asyncresult.map f
-
+    
     member o.publish (commands:StoredCommand list): unit R =
-        printfn "CH got some command to publish %A" commands
-        List.map o.push commands 
+        //printfn "CH got some command to publish %A" commands
+        List.fold (o.push >> Asyncresult.next |> flip) (Asyncresult.ok ()) commands 
         |> ignore |> Asyncresult.ok 
 
     member _.notifyAll value =
@@ -54,44 +51,6 @@ type CommandHub() =
     interface System.IObservable<StoredCommand> with
         member _.Subscribe observer =
             let id = InterfaceTools.addInto observers observer
+            //printfn "observers of CH: %A ------------" observers
             new Unsubscribe(id,observers.contents,unsubscibes) :> System.IDisposable
-
-
-(*
-let storedCommand = function Processed cmd -> cmd |NotProcessed cmd -> cmd 
-
-let push (value:StoredCommand): unit R =
-    do commandHub <- Array.append [|NotProcessed value|] commandHub
-
-    Asyncresult.ok ()
-
-let modify (id:int): HubbedCommand -> unit R =
-    match Array.tryItem id commandHub with
-    |Some _ ->
-        Array.set commandHub id >> Asyncresult.ok
-    |None -> 
-        IndexNotFound (id, Some "cannot modify: no item exists")
-        |> Errors.CommandHub |> Asyncresult.error |> constant
-
-let lastNonProcessed (): (int * StoredCommand) R =
-    Array.tryFindIndex (function NotProcessed _ -> true |_ -> false) commandHub
-    |> function
-        |Some index ->
-            let elem = Array.get commandHub >> storedCommand in
-            Asyncresult.ok (index,elem index)
-        |None -> 
-            NoNotProcessedFound |> Errors.CommandHub |> Asyncresult.error
-    
-let processEvent (): StoredCommand R =
-    lastNonProcessed ()
-    |> let change_and_mark (id,event) = 
-            do modify id (Processed event) |> ignore
-            event 
-       in Asyncresult.map change_and_mark
-
-let publish (events_info : StoredCommand list): unit R =
-    List.map push events_info |> ignore
-    Asyncresult.ok () *)
-
-
 

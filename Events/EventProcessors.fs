@@ -10,14 +10,16 @@ type StoredEvent = DomainTypes.SubscriptionId * Event
 type EventListFold<'a> = StoredEvent list -> 'a
 type Command = Commands.Command
 
+let bot_speech s = ">>>bot>>>: " + s
+
 let nextQuizStarted (event:NewQuizStartedEvent  ) sid: Command list R' EventListFold =
-    Ok [Commands.NotifyUser {notification = "bot: new quiz started"}] |> constant
+    Ok [Commands.NotifyUser {notification = bot_speech "new quiz started"}] |> constant
 let testFailed      (event:TestFailedEvent      ) sid: Command list R' EventListFold =
-    Ok [Commands.NotifyUser {notification = "bot: test failed"}] |> constant
+    Ok [Commands.NotifyUser {notification = bot_speech "test failed"}] |> constant
 let testSolved      (event:TestSolvedEvent      ) sid: Command list R' EventListFold =
-    Ok [Commands.NotifyUser {notification = "bot: test solved"}] |> constant
+    Ok [Commands.NotifyUser {notification = bot_speech "test solved"}] |> constant
 let testSended      (event:TestSendedEvent      ) sid: Command list R' EventListFold =
-    Ok [Commands.NotifyUser {notification = "bot: test sended"}] |> constant
+    Ok [Commands.NotifyUser {notification = bot_speech "test sended"}] |> constant
 let userNotified    (event:UserNotifiedEvent    ) sid: Command list R' EventListFold = 
     Ok [] |> constant
 
@@ -57,7 +59,7 @@ let userSentMessage
     |> Result.seqList
     |> Result.map 
         (let notify msg = [Commands.NotifyUser {notification = msg}]
-         let msg = sprintf "bot> %A commands parsed" in
+         let msg = bot_speech << sprintf "%A commands parsed" in
          fun xs -> 
              List.append (List.length xs |> msg |> notify) xs)
 

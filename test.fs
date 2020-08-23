@@ -2,21 +2,29 @@
 open DomainTypes
 open Domain
 open Infrastructure
-
+open Infrastructure.Operators
 
 let ( >=> ) f g = Asyncresult.andThen f g
 let test = EventHub.lastTestOf
 let generator = EventHub.lastTestGeneratorOf
+(*
 let ( *>) a b = Asyncresult.next a b
-let ( >*>) a b x = a x *> b x
-let putLine s x: Asyncresult<_,_> = printfn "%s %A" s x; Asyncresult.ok x
+let ( >*>) a b x = a x *> b x *)
+let putLine s x: AResult<_,_> = printfn "%s %A" s x; AResult.ok x
 let sid = SubscriptionId
 let sentMessage id msg sid': SubscriptionId * Events.Event = 
     Events.UserSentMessage {user_id = id; message = msg}
     |> Events.External
     |> fun x -> sid sid',x
 
-let testThisShit () : Asyncresult<unit,Errors.Error> = 
+let foo (f: ('a -> 'b) IO) (x:'a IO): 'b IO = f <*> x
+let bar (x: AResult<'a,Errors.Error>) 
+        (y:AResult<'b,Errors.Error>): 
+        AResult<'b,Errors.Error> = 
+        
+        x *> y
+
+let testThisShit () : AResult<unit,Errors.Error> = 
     let commandHub = new CommandHub.CommandHub()
     let eventHub = new EventHub.EventHub()
     let commandHandler = CurrentConfiguration.CommandHandler(eventHub,commandHub)
@@ -24,14 +32,15 @@ let testThisShit () : Asyncresult<unit,Errors.Error> =
     eventHandler.subscribe()
     commandHandler.subscribe()
 
-    asyncresult {
-        let! one = eventHub.push(sentMessage 228 "new 5 2" 55) 
-        let! one' = eventHub.push(sentMessage 228 "answer 2 ggg" 55)
-        let! one'' = eventHub.push(sentMessage 228 "answer 7 ggg" 55)
-        let! one''' = eventHub.push(sentMessage 228 "answer 3 ggg" 55)
-        printfn "Уильям, блядь"
-        return ()
-    }
+    let res: unit EventHub.R =
+        eventHub.push (sentMessage 228 "new 5 2" 55) 
+        *> eventHub.push (sentMessage 228 "answer 2 ggg" 55)
+        *> eventHub.push (sentMessage 228 "answer 7 ggg" 55)
+        *> eventHub.push (sentMessage 228 "answer 3 ggg" 55)
+
+    printfn "Уильям, блядь"
+    res
+
 (*
 let testThisShit () : Asyncresult<'j,Errors.Error> = asyncresult {
     let! sub = MainIO.Subscriptions.subscribe ()

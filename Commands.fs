@@ -27,5 +27,5 @@ type Command =
 
 type Commands = Commands of Command  list
 
-type CommandProcessor = unit -> Asyncresult<DomainEvent list,Error>
+type CommandProcessor = unit -> AResult<DomainEvent list,Error>
 type CommandMatcher = CommandMatcher of (Command -> CommandProcessor)

@@ -4,7 +4,7 @@ open Infrastructure
 open Errors
 open Events
 
-type R<'a> = Asyncresult<'a,Errors.Error>
+type R<'a> = AResult<'a,Errors.Error>
 type R'<'a> = Result<'a,Errors.Error>
 type StoredCommand = (DomainTypes.SubscriptionId * Commands.Command)
 type StoredCommands = StoredCommand list
@@ -40,5 +40,3 @@ let handle
         let identified_commands = List.map (fun command -> sid,command) commands 
         return identified_commands
     }
-    //static member observe =  implement IObservable interface, 
-    //that will respond to Subscriptions changing and notify subcriber

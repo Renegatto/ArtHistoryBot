@@ -6,28 +6,31 @@ open DomainTypes
 open Errors
 open Events
 open Infrastructure
+open Infrastructure.Operators
+type R<'a> = AResult<'a,Error>
 
-let nextTest (cmd:NextTestCommand): Asyncresult<DomainEvent list,Error> = asyncresult {
+let nextTest (cmd:NextTestCommand): DomainEvent list R =
     let generator (TestGenerator gen) = gen
-    let! test = generator cmd.generator ()
 
-    return! Domain.nextTest cmd test |> Asyncresult.fromResult
-}
-let newTest (cmd:NewTestCommand): Asyncresult<DomainEvent list,Error> = asyncresult {
-    let! artworks = MainIO.Storage.artworks ()
-    let generator = 
-        MainIO.Randoms.testBuilder cmd.variants_count artworks 
-        >> Asyncresult.fromResult >> Asyncresult.bind Asyncresult.okIO
-    let! test = generator ()
+    generator cmd.generator ()
+    >>= (Domain.nextTest cmd >> AResult.fromResult)
 
-    return! Domain.newTest cmd (TestGenerator generator) test |> Asyncresult.fromResult
-}
-let guessResult (cmd:GuessResultCommand): Asyncresult<DomainEvent list,Error> = asyncresult {
-    return! Domain.guessResult cmd |> Asyncresult.fromResult
-}
-let notifyUser (cmd:NotifyUserCommand): Asyncresult<DomainEvent list,Error> =
+let newTest (cmd:NewTestCommand): DomainEvent list R = 
+    aresult {
+        let! artworks = MainIO.Storage.artworks ()
+        let generator () = 
+                MainIO.Randoms.testBuilder cmd.variants_count artworks ()
+                |> AResult.fromResult >>= AResult.okIO
+        let! test = generator ()
+
+        return! Domain.newTest cmd (TestGenerator generator) test |> AResult.fromResult
+    }
+let guessResult (cmd:GuessResultCommand): DomainEvent list R =
+    Domain.guessResult cmd |> AResult.fromResult
+
+let notifyUser (cmd:NotifyUserCommand): DomainEvent list R =
     printfn "%s" cmd.notification |> ignore
-    Asyncresult.ok [Events.UserNotified {notification = cmd.notification}]
+    AResult.ok [Events.UserNotified {notification = cmd.notification}]
 
 let matchCommand: CommandMatcher = 
     CommandMatcher (constant << function

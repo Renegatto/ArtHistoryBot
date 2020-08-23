@@ -5,7 +5,7 @@ open Errors.EventHubErrors
 
 type Event = Events.Event
 type Error = Errors.Error
-type R<'a> = Asyncresult<'a,Errors.Error>
+type R<'a> = AResult<'a,Errors.Error>
 type R'<'a> = Result<'a,Error>
 type StoredEvent = SubscriptionId * Event
 
@@ -86,7 +86,7 @@ type Unsubscribe(index:int, xs:_ option [], unsubscribes:int option [] ref) =
             Array.set xs index None
             InterfaceTools.addInto unsubscribes index
             |> ignore
-open FSharpPlus
+open Infrastructure.Operators
 type EventHub() =
 
     let eventHub: StoredEvent [] ref = ref Array.empty
@@ -96,24 +96,24 @@ type EventHub() =
 
     member _.read (): StoredEvent list R =
         Array.toList eventHub.contents
-        |> Asyncresult.ok
+        |> AResult.ok
 
     member o.filterData (filter: StoredEvent -> 'data option): 'data list R =
-         o.read () |> Asyncresult.map (List.choose filter)  
+        List.choose filter <!> o.read ()
 
     member o.processData (f:StoredEvent list -> 'data):'data R = // StoredEventFold a -> R a
-        o.read () |> Asyncresult.map f
+        f <!> o.read ()
 
     member o.push (event:StoredEvent): unit R =
         printfn "EHub got event %A" event//"i were pushed with %A" observers.contents
         eventHub.contents <- Array.append [|event|] eventHub.contents
         o.notifyAll event
-        |> Asyncresult.ok
+        |> AResult.ok
 
     member o.publishDomain (events:(SubscriptionId * Events.DomainEvent) list): unit R =
         List.map (fun (id,event) -> id,Events.Domain event) events
-        |> List.fold (o.push >> Asyncresult.next |> flip) (Asyncresult.ok ())
-        |> ignore |> Asyncresult.ok 
+        |> List.fold (fun acc x -> acc *> o.push x) (AResult.zero ())
+        |> ignore |> AResult.ok 
 
     member o.notifyAll value =
         let fn (x:StoredEvent Observer) = x.OnNext value 

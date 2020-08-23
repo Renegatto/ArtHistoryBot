@@ -1,7 +1,7 @@
 ﻿module MainIO
 open Errors
 open Infrastructure
-
+type R<'a> = AResult<'a,Error>
 module Constructors =
     open Domain
     open DomainTypes
@@ -16,6 +16,7 @@ module Storage =
     open DomainTypes
     open Errors
     open Infrastructure
+    open Infrastructure.Operators
 
     let content (): Async<string list> = async { //doesnt work on chief's computer ':D
         let read = new Func<string []> ( fun () -> File.ReadAllLines Constants.storageName )
@@ -25,8 +26,8 @@ module Storage =
     let content_alt (): Async<string list> = async {
         return File.ReadAllLines Constants.storageName |> Array.toList
     }
-    let artworks (): Asyncresult<Artwork list,Error> = asyncresult {
-        let! lines = (*content*) content_alt ()|> Asyncresult.okAsync
+    let artworks (): Artwork list R = aresult {
+        let! lines = (*content*) content_alt ()|> AResult.okAsync
         return Parser.Artworks.artworks_from_lines lines
     }
 
@@ -34,8 +35,7 @@ module Randoms =
     open System
     open Domain
     open DomainTypes
-    open Infrastructure
-    open FSharpPlus
+    open Infrastructure.Operators
 
     let rng = Random(Constants.random_seed)
     let randomOrder _: int = rng.Next ()
@@ -46,7 +46,7 @@ module Randoms =
         |> flip List.item xs
         |> IO
     let sample count (xs: 'a list) () : 'a list IO = //fixed? позволяет выбирать несколько раз одно и то же
-        shuffle xs |> IO.map (List.take count)
+        List.take count <!> shuffle xs //|> IO.map ()
     let artwork :Artwork list -> unit -> Artwork IO = element
     let variant :AnswerVariant list -> unit -> AnswerVariant IO = element
     let variants count (artworks:Artwork list) (): AnswerVariant list IO = io {
@@ -72,7 +72,7 @@ module Randoms =
 
         enoughArtworks
         |> Result.map new_test
-
+(*
 module Subscriptions =
     open Infrastructure
     open FSharpPlus
@@ -123,10 +123,11 @@ module Subscriptions =
         let! sub = tryFind sid
         return sub.data
     }
+
 //open System
 open Domain
 open Infrastructure
-
+*)
 //[<System.Diagnostics.DebuggerDisplay("MainIO: test builder touched {sid}")>]
 //let testBuilder (variants_count:int) () : Asyncresult<Test,Error>  = asyncresult {
 //    let! artworks = Storage.artworks ()

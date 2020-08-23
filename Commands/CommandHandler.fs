@@ -10,14 +10,14 @@ open Commands
 //    member 
 type StoredEvent = (DomainTypes.SubscriptionId * Event)
 type R'<'a> = Result<'a,Errors.Error>
-type R<'a> = Asyncresult<'a,Errors.Error>
+type R<'a> = AResult<'a,Errors.Error>
 type CommandHandler() = //CommandHandler of (Command -> Result<DomainEvent,Error>)
     static member private handleCommand
         (CommandMatcher processor)
         (sid: SubscriptionId)
         (command:Command)
         :StoredEvent list -> (SubscriptionId * DomainEvent) list R = fun events -> 
-        asyncresult {
+        aresult {
 
             //let! stored_data = Subscriptions.readData sid
             let! events = processor command ()// stored_data

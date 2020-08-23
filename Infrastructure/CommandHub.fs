@@ -4,7 +4,7 @@ open DomainTypes
 open Commands
 open Errors.CommandHubErrors
 
-type R<'a> = Asyncresult<'a,Errors.Error>
+type R<'a> = AResult<'a,Errors.Error>
 type StoredCommand = SubscriptionId * Commands.Command 
 type HubbedCommand =
     |Processed of StoredCommand
@@ -17,9 +17,9 @@ type Unsubscribe(index:int, xs:_ option [], unsubscribes:int option [] ref) =
             Array.set xs index None
             InterfaceTools.addInto unsubscribes index
             |> ignore
-
+open Infrastructure.Operators
 type CommandHub() =
-
+    
     let commandHub: StoredCommand [] ref = ref Array.empty
 
     let observers: (System.IObserver<StoredCommand> option) [] ref = ref [||]
@@ -27,21 +27,21 @@ type CommandHub() =
 
     member _.read (): StoredCommand list R =
         Array.toList commandHub.contents
-        |> Asyncresult.ok     
+        |> AResult.ok     
 
     member o.push (command:StoredCommand): unit R =
         commandHub.contents <- Array.append [|command|] commandHub.contents
         printfn "CHub got command %A" command
         o.notifyAll command
-        |> Asyncresult.ok
+        |> AResult.ok
 
     member o.processData (f:StoredCommand list -> 'data):'data R = // StoredEventFold a -> R a
-        o.read () |> Asyncresult.map f
+        f <!> o.read ()
     
     member o.publish (commands:StoredCommand list): unit R =
         //printfn "CH got some command to publish %A" commands
-        List.fold (o.push >> Asyncresult.next |> flip) (Asyncresult.ok ()) commands 
-        |> ignore |> Asyncresult.ok 
+        List.fold (fun acc x ->  o.push x *> acc) (AResult.ok ()) commands 
+        |> ignore |> AResult.ok 
 
     member _.notifyAll value =
         let fn (x: System.IObserver<StoredCommand>) = x.OnNext value 

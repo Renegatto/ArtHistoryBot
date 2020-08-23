@@ -26,5 +26,5 @@ type Test =
     }
 open Infrastructure
 open Errors
-type TestGenerator = TestGenerator of (unit -> Asyncresult<Test,Error>)
+type TestGenerator = TestGenerator of (unit -> AResult<Test,Error>)
 type SubscriptionId = SubscriptionId of int

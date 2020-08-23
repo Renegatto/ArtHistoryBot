@@ -1,7 +1,8 @@
 ﻿module CurrentConfiguration
 open Infrastructure
+open Infrastructure.Operators
 
-type R<'a> = Asyncresult<'a,Errors.Error>
+type R<'a> = AResult<'a,Errors.Error>
 type R'<'a> = Result<'a,Errors.Error>
 type StoredCommand = DomainTypes.SubscriptionId * Commands.Command
 type StoredEvent = DomainTypes.SubscriptionId * Events.Event
@@ -29,8 +30,9 @@ type EventHandler(eventHub,commandHub) =
     member o.updated(event) = 
          printfn "handling event...%A" event
          eventHub.processData (handleEvent event)
-         |> Asyncresult.bind Asyncresult.fromResult
-         |> Asyncresult.bind commandHub.publish
+         >>= AResult.fromResult
+         >>= commandHub.publish
+         |> AResult.toAsyncR
          |> Async.RunSynchronously
          |> ignore   
 
@@ -51,7 +53,6 @@ type EventHandler(eventHub,commandHub) =
         unsubscribe.contents <- [eventHub.Subscribe(o.updated)]
 
         ()
-open FSharpPlus
 let say s x =
     printfn s
     x
@@ -65,24 +66,24 @@ type CommandHandler(eventHub,commandHub) =
 
         printfn "handling command...%A" command
 
-        let actions x: unit R = Asyncresult.next 
-                                    (printfn "inside: %A" x |> Asyncresult.ok) 
-                                    (eventHub.publishDomain x)
+        let actions x: unit R = 
+            (printfn "inside: %A" x |> AResult.ok : unit R) *> (eventHub.publishDomain x:unit R)
  
         eventHub.processData (handleCommand command)
-        |> say "now flatten..."
-        |> Asyncresult.flatten
-        |> say "flattened" 
-        |> Asyncresult.bind actions //why this shit is not entering here?
-        |> say "binded"
-        |> Async.map ignore |> Async.Start
+        |> say "now flatten..." |> join |> say "flattened"
+
+        >>= actions //why this shit is not entering here?
+
+        |> say "binded" 
+        |> AResult.toAsyncR 
+        |> ( *> ) <| Async.zero ()
+        |> Async.Start
         |> ignore |> say "done"
 
     interface System.IObserver<StoredCommand> with
         member _.OnCompleted() =
             printfn "command handling has been completed"
             (List.head unsubscribe.contents).Dispose()
-
         member o.OnNext(command) = o.update(command)
 
         member _.OnError(err) =
@@ -90,7 +91,5 @@ type CommandHandler(eventHub,commandHub) =
 
     member o.subscribe() =
         let eventHub: EventHub.EventHub = eventHub
-
         unsubscribe.contents <- [commandHub.Subscribe(o.update)]
-
         ()

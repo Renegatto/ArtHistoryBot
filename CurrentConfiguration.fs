@@ -21,6 +21,19 @@ let handleEvent: StoredEvent -> StoredCommand list R' StoredEventsFold =
           EventProcessors.matchEvent
     in uncurry fn
 
+let say s x =
+    printfn s
+    x
+let asay s x =
+    printfn s
+    AResult.ok x
+let show s y x =
+    printfn s y;
+    x
+let ashow s y x =
+    printfn s y;
+    AResult.ok x
+
 type EventHandler(eventHub,commandHub) =
     let unsubscribe: System.IDisposable list ref = ref []
 
@@ -28,17 +41,19 @@ type EventHandler(eventHub,commandHub) =
     let commandHub:CommandHub.CommandHub = commandHub
 
     member o.updated(event) = 
-         printfn "handling event...%A" event
+         //printfn "......gen: handling event" |> ignore
+
          eventHub.processData (handleEvent event)
+         //>>= ashow "handling event %A..." event
          >>= AResult.fromResult
          >>= commandHub.publish
-         |> AResult.toAsyncR
-         |> Async.RunSynchronously
-         |> ignore   
+         |> AResult.asyncEndpoint
+         |> Async.Start
+         |> ignore //|> ashow "EHan done (sync) %A" event |> ignore 
 
     interface System.IObserver<StoredEvent> with
         member _.OnCompleted() =
-            printfn "event handling has been completed"
+            //printfn "event handling has been completed"
             (List.head unsubscribe.contents).Dispose()
 
         member o.OnNext(event) = o.updated(event)
@@ -53,32 +68,26 @@ type EventHandler(eventHub,commandHub) =
         unsubscribe.contents <- [eventHub.Subscribe(o.updated)]
 
         ()
-let say s x =
-    printfn s
-    x
+
 type CommandHandler(eventHub,commandHub) =
     let unsubscribe: System.IDisposable list ref = ref []
     
-    [<System.Obsolete("'actions' is not called from callback sometimes")>]
+    //[<System.Obsolete("'actions' is not called from callback sometimes")>]
     member o.update(command) =
         let eventHub: EventHub.EventHub = eventHub
         let commandHub: CommandHub.CommandHub = commandHub
 
-        printfn "handling command...%A" command
+        //printfn ".. gen: handling command..."
 
         let actions x: unit R = 
-            (printfn "inside: %A" x |> AResult.ok : unit R) *> (eventHub.publishDomain x:unit R)
+            (*(printfn "handling command %A" x |> AResult.ok : unit R) *>*) (eventHub.publishDomain x:unit R)
  
         eventHub.processData (handleCommand command)
-        |> say "now flatten..." |> join |> say "flattened"
-
-        >>= actions //why this shit is not entering here?
-
-        |> say "binded" 
-        |> AResult.toAsyncR 
-        |> ( *> ) <| Async.zero ()
+        |> join 
+        >>= actions //nah, it's entering, here is all right
+        |> AResult.asyncEndpoint
         |> Async.Start
-        |> ignore |> say "done"
+        |> ignore //|> ashow "CHan done (sync) %A" command |> ignore
 
     interface System.IObserver<StoredCommand> with
         member _.OnCompleted() =

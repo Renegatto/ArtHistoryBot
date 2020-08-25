@@ -26,6 +26,23 @@ module DataSelectors =
             match event with
             |Events.NewQuizStarted event -> Some event.generator
             |_ -> None
+        |_ -> None 
+        
+    let guessResult (event:Event): Events.DomainEvent option =
+        match event with
+        |Events.Domain event ->
+            match event with
+            |Events.TestFailed event -> Some (Events.TestFailed event)
+            |Events.TestSolved event -> Some (Events.TestSolved event)
+            |_ -> None
+        |_ -> None   
+
+    let sendedTest (event:Event): DomainTypes.Test option =
+        match event with
+        |Events.Domain event ->
+            match event with
+            |Events.TestSended event -> Some event.test
+            |_ -> None
         |_ -> None   
 
 let sidInt (SubscriptionId x) = x
@@ -76,6 +93,14 @@ let lastTestGeneratorOf (sid:SubscriptionId):TestGenerator R' EventListFold =
         |> NotFound |> Errors.EventHub
     in testGeneratorsOf sid >> List.tryHead >> Result.fromOption error
 
+let hasUnfinishedTests (sid:SubscriptionId): bool EventListFold =
+    eventsOf sid
+    //>> fun x -> printfn "~~~~~~~~~~~~~\n%A\n~~~~~~~~~~~~~" x ; x
+    >> List.takeWhile (DataSelectors.sendedTest >> Option.isNone)
+    //>> fun x -> printfn "~~~~~~~~~~~~~\n%A\n~~~~~~~~~~~~~" x ; x
+    >> List.forall (DataSelectors.guessResult >> Option.isNone)
+    //>> fun x -> printfn "}}}}}}}}}}}}}}}}}}}}%A" x ; x
+
 type Observer<'a> = System.IObserver<'a>
 type Observable<'a> = System.IObservable<'a>
 
@@ -105,15 +130,16 @@ type EventHub() =
         f <!> o.read ()
 
     member o.push (event:StoredEvent): unit R =
-        printfn "EHub got event %A" event//"i were pushed with %A" observers.contents
+        //printfn "EHub got event %A" event//"i were pushed with %A" observers.contents
         eventHub.contents <- Array.append [|event|] eventHub.contents
         o.notifyAll event
         |> AResult.ok
 
     member o.publishDomain (events:(SubscriptionId * Events.DomainEvent) list): unit R =
         List.map (fun (id,event) -> id,Events.Domain event) events
-        |> List.fold (fun acc x -> acc *> o.push x) (AResult.zero ())
-        |> ignore |> AResult.ok 
+        |> List.map o.push
+        |> AResult.sequential
+        |> AResult.endpoint
 
     member o.notifyAll value =
         let fn (x:StoredEvent Observer) = x.OnNext value 

@@ -32,6 +32,22 @@ module Result =
     let seqList (xs: Result<'a,'b> list): Result<'a list,'b> =
         let fn = liftM2 (fun acc x -> x::acc)
         in List.fold fn (Ok []) xs
+    let result (pred:'a -> bool) (err:'err) (x:'a): Result<'a,'err> =
+        if pred x then Ok x else Error err
+    //let mapM (f: 'a -> '``f b``) (x:Result<'a,'c>): '``f (Result b c)`` =
+    let seqPair (pair:Result<'a,'c> * Result<'b,'c>):Result<'a*'b,'c> =
+        pair |> uncurry (Result.map2 (fun x y -> x,y))
+    let splitPair (pair:Result<'a*'b,'c>):Result<'a,'c> * Result<'b,'c> =
+        match pair with
+        |Ok (x,y) -> (Ok x, Ok y)
+        |Error err -> (Error err,Error err)
+module List =
+    let rec seqResult (xs: Result<'a list,'b>): Result<'a,'b> list =
+        match xs with
+        |Error err  -> [Error err]
+        |Ok []      -> []
+        |Ok (x::xs) -> (Ok x) :: seqResult (Ok xs)
+        
 type IO<'a> = IO of 'a with
     
     //this kind of IO can join to Async to avoid complicated code
@@ -118,8 +134,16 @@ module Asyncresult =
     let next (a: M<_,_>) (b:M<'a,'b>): M<'a,'b> = bind (constant b) a
     let compose (f: 'b -> M<'c,_>) (g: 'a -> M<'b,_>) (x:'a): M<'c,_> = bind f (g x)
     let andThen (f: 'a -> M<'b,_>) (g: 'b -> M<'c,_>): 'a -> M<'c,_> = compose g f
-    let seqList (a: M<'a,'b> list): M<'a list,'b> = 
-        List.fold (liftM2 List.cons |> flip) (ok []) a 
+    let sequential (xs: M<'a,'b> list): M<'a list,'b> = 
+        List.fold (liftM2 List.cons |> flip) (ok []) xs
+        //xs |> List.toSeq |> Async.Sequential
+        //|> Async.map (Seq.toList >> Result.seqList)       <- is a also valid (and built-in) but... So verbose >.<
+
+    let asyncEndpoint (x:M<'a,'b>):Async<unit> = Async.map ignore x
+    let endpoint (x:M<'a,'b>):M<unit,'b> = map ignore x // Async.sequential :: [m (Result a b)] -> m [Result a b]
+
+    //let sequentially (xs:M<'a,'b> list):M<unit,'b> =
+    //    List.fold (fun acc x -> acc *> endpoint x) (zero ()) xs
 type AsyncResultComprehension() = 
     member x.Bind(a,fn) = Asyncresult.bind fn a 
     member x.Return(a) = Asyncresult.ok a 
@@ -148,6 +172,7 @@ type Foo<'a> = Foo of 'a with
 type M<'a,'b> = AResult<'a,'b>
 type AR<'a,'b> = Asyncresult<'a,'b>
 module AResult =
+    let private unwrap (AResult x) = x
     let toAsyncR (AResult (x:AR<'a,'b>)): AR<'a,'b> = x
     let private amap f (AResult x) = AResult (f x)
     let zero x = Asyncresult.zero x |> AResult
@@ -161,6 +186,11 @@ module AResult =
     let okAsync x = Asyncresult.okAsync x |> AResult
     let errorAsync x = Asyncresult.errorAsync x |> AResult
     let okIO x = Asyncresult.okIO x |> AResult
+    let endpoint (x:AResult<'a,'b>): AResult<unit,'b> = amap Asyncresult.endpoint x
+    let asyncEndpoint x = Asyncresult.asyncEndpoint (unwrap x)
+    let sequential (xs:M<'a,'b> list):M<'a list,'b> = 
+        Asyncresult.sequential (List.map unwrap xs)
+        |> AResult
     let mapAsync f x = amap f x
 type AResultComprehension() = 
     member x.Bind(a,fn) = AResult.bind fn a 
@@ -211,7 +241,7 @@ module Operators =
                                     [<Optional>]_output: list<'U> , 
                                     [<Optional>]_mthd: Apply') = List.apply f x
             static member Apply (f: Result<_,_> , x: Result<'T,_> ,
-                                    [<Optional>]_output: list<'U> , 
+                                    [<Optional>]_output: Result<_,_> , 
                                     [<Optional>]_mthd: Apply') = Result.apply f x
              static member Apply (f: AResult<_,_> , x: AResult<'T,_> ,
                                     [<Optional>]_output: AResult<'U,_> , 

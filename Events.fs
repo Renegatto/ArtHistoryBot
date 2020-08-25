@@ -24,12 +24,18 @@ type UserNotifiedEvent =
     {
         notification : string
     }
+type TestShowedEvent =
+    {
+        test: Test
+        message: string
+    }
 type DomainEvent =
     |TestSolved of TestSolvedEvent
     |TestFailed of TestFailedEvent
     |NewQuizStarted of NewQuizStartedEvent
     |TestSended of TestSendedEvent
     |UserNotified of UserNotifiedEvent
+    |TestShowed of TestShowedEvent
 
 type UserSentMessageEvent =
     {

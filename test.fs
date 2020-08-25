@@ -24,6 +24,19 @@ let bar (x: AResult<'a,Errors.Error>)
         
         x *> y
 
+let initStuff () = 
+    let commandHub = new CommandHub.CommandHub()
+    let eventHub = new EventHub.EventHub()
+    let commandHandler = CurrentConfiguration.CommandHandler(eventHub,commandHub)
+    let eventHandler = CurrentConfiguration.EventHandler(eventHub,commandHub)
+    eventHandler.subscribe()
+    commandHandler.subscribe()
+
+    (eventHandler,commandHandler,eventHub,commandHub)
+//type Barz<'a> =
+//    interface IEvent<'a> with
+//        member 
+//let foo : Event<int> = Event.add
 let testThisShit () : AResult<unit,Errors.Error> = 
     let commandHub = new CommandHub.CommandHub()
     let eventHub = new EventHub.EventHub()
@@ -31,6 +44,7 @@ let testThisShit () : AResult<unit,Errors.Error> =
     let eventHandler = CurrentConfiguration.EventHandler(eventHub,commandHub)
     eventHandler.subscribe()
     commandHandler.subscribe()
+
 
     let res: unit EventHub.R =
         eventHub.push (sentMessage 228 "new 5 2" 55) 
@@ -40,7 +54,19 @@ let testThisShit () : AResult<unit,Errors.Error> =
 
     printfn "Уильям, блядь"
     res
+let repl () =
+    let (_,_,eventHub,CommandHub) = initStuff ()
 
+    let rec foo () =
+        System.Console.ReadLine () 
+        |> flip (sentMessage 228) 55
+        |> eventHub.push
+        |> AResult.map (printfn "%A")
+        |> AResult.asyncEndpoint
+        |> Async.Start
+        |> ignore |> foo
+
+    foo ()
 (*
 let testThisShit () : Asyncresult<'j,Errors.Error> = asyncresult {
     let! sub = MainIO.Subscriptions.subscribe ()

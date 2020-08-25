@@ -30,13 +30,22 @@ type ExternalEventMatcher =
     ExternalEventMatcher    of (ExternalEvent -> ExternalEventProcessor)
 type EventMatcher = 
     EventMatcher            of (Event -> EventProcessor)
-
+//open FSharpPlus
 let handle
     (EventMatcher processor)
     (sid: DomainTypes.SubscriptionId)
     (event:Event)
-    : StoredCommands R' StoredEventFold = fun events -> result {
-        let! commands = processor event sid events
+    : StoredCommands R' StoredEventFold = 
+    
+    let catchError commands = 
+        match commands with
+        |Error (Errors.Domain error) -> Ok [Commands.ShowError error]
+        |_ -> commands
+    
+    fun events -> result {
+
+        let! commands = processor event sid events |> catchError
+
         let identified_commands = List.map (fun command -> sid,command) commands 
         return identified_commands
     }

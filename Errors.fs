@@ -19,6 +19,7 @@ type DomainError =
     |TestVariantIsNotExists
     |TestGeneratorNotFounded of sid:int
     |NotEnoughArtworksForTest of NotEnoughArtworksForTestError
+    |NotUnpassedTestsFound
 type SubscriptionError =
     |NoSubscriptionFound of int
 

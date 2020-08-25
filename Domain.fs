@@ -26,6 +26,15 @@ let newTest (command:Commands.NewTestCommand) generator test: Result<Events.Doma
 let nextTest (command:Commands.NextTestCommand) test: Result<Events.DomainEvent list,Error> =
     [ Events.TestSended { test = test }] |> Ok
 
+let showTest (command:Commands.ShowTestCommand): Result<Events.TestShowedEvent,Error> =
+    let variants = command.test.all_variants
+    let format_variant (variant: AnswerVariant) =
+        sprintf "%A. %A\n" variant.variant variant.artwork.author
+
+    List.map format_variant variants
+    |> List.reduce (+)
+    |> fun msg -> Ok {test=command.test;message=msg}
+
 //let attemptToGuess (test:Test) (variant:Variant): TestResult = //what's going on here? O_o
 //    List.filter (fun x -> x.variant = variant) test.all_variants
 //    |> List.head

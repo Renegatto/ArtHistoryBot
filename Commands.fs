@@ -18,12 +18,18 @@ type NextTestCommand = {
 type NotifyUserCommand = {
     notification : string
 }
+type ShowTestCommand = {
+    test : Test
+}
+//type ShowErrorCommand = ShowErrorCommand of DomainError
 
 type Command = 
     |GuessResult of GuessResultCommand
     |NewTest of NewTestCommand
     |NextTest of NextTestCommand
     |NotifyUser of NotifyUserCommand
+    |ShowError of DomainError
+    |ShowTest of ShowTestCommand
 
 type Commands = Commands of Command  list
 

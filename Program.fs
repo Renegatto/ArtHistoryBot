@@ -32,7 +32,9 @@ module Foo =
 
 [<EntryPoint>]
 let main argv = 
-    
+
+    Test.repl ()
+
     let baz = None
     (*let bar word potential_args = 
         let predicate (signature:Parser.Userinput.InstructionSignature) = 
@@ -51,10 +53,10 @@ let main argv =
     
     //printfn "now... %A, %A" (Test.baz <| Test.Foo 7) (Test.boo <| Test.Bar 9)
 
-    Foo.foo () |> Async.RunSynchronously |> printfn "%A"
+    //Foo.foo () |> Async.RunSynchronously |> printfn "%A"
 
-    Test.testThisShit () |> AResult.toAsyncR |> Async.RunSynchronously
-    |> ignore
+    Test.testThisShit () |> AResult.asyncEndpoint |> Async.Start //RunSynchronously
+    |> printfn "%A"
 
     printfn "called..."
     

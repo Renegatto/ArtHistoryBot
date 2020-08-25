@@ -32,10 +32,24 @@ let notifyUser (cmd:NotifyUserCommand): DomainEvent list R =
     printfn "%s" cmd.notification |> ignore
     AResult.ok [Events.UserNotified {notification = cmd.notification}]
 
+let showError (error:DomainError): DomainEvent list R =
+    printfn ">>> an error occured: %A" error |> ignore
+    AResult.ok []    
+let showTest (cmd:ShowTestCommand): DomainEvent list R =
+    let showed_test = Domain.showTest cmd
+
+    Result.map (fun (x:Events.TestShowedEvent) -> printfn "%s" x.message) showed_test
+    |> ignore
+
+    AResult.fromResult showed_test
+    |>> fun event -> [Events.TestShowed event]
+
 let matchCommand: CommandMatcher = 
     CommandMatcher (constant << function
     |GuessResult cmd    -> guessResult cmd
     |NewTest cmd        -> newTest     cmd
     |NextTest cmd       -> nextTest    cmd
     |NotifyUser cmd     -> notifyUser  cmd
+    |ShowError cmd      -> showError   cmd
+    |ShowTest cmd       -> showTest    cmd
     )

@@ -9,7 +9,6 @@ type StoredCommand = SubscriptionId * Commands.Command
 type HubbedCommand =
     |Processed of StoredCommand
     |NotProcessed of StoredCommand
-
 type Unsubscribe(index:int, xs:_ option [], unsubscribes:int option [] ref) =
 
     interface System.IDisposable with
@@ -31,7 +30,7 @@ type CommandHub() =
 
     member o.push (command:StoredCommand): unit R =
         commandHub.contents <- Array.append [|command|] commandHub.contents
-        printfn "CHub got command %A" command
+        //printfn "CHub got command %A" command
         o.notifyAll command
         |> AResult.ok
 
@@ -40,8 +39,9 @@ type CommandHub() =
     
     member o.publish (commands:StoredCommand list): unit R =
         //printfn "CH got some command to publish %A" commands
-        List.fold (fun acc x ->  o.push x *> acc) (AResult.ok ()) commands 
-        |> ignore |> AResult.ok 
+        List.map o.push commands
+        |> AResult.sequential
+        |> AResult.endpoint
 
     member _.notifyAll value =
         let fn (x: System.IObserver<StoredCommand>) = x.OnNext value 
